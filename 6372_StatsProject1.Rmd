@@ -1,0 +1,38 @@
+---
+title: "Stats 2 Project 1"
+author: "Kito Patterson <br />  Andy Heroy <br /> Ryan Quincy Paul "
+date: "2/7/2019"
+output: html_document
+---
+
+#This is a commit Test
+
+
+###Load / View Data
+```{r}
+setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Project")
+
+df <- read.csv("lego_sets.csv")
+head(df)
+
+```
+
+###Remove description columns
+```{r echo=TRUE}
+legos <- df[ -c(6,8)]
+```
+
+###Check data types
+```{r echo=TRUE}
+str(legos)
+```
+
+
+###Exploratory Analysis
+```{r}
+summary(legos)
+```
+
+
+
+
