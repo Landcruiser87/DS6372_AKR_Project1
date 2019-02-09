@@ -42,13 +42,6 @@ sumstats
 
 pairs(legos[-c(1,6:8,10,12)])
 
-# library(ggplot2)
-# ggplot(sumstats,aes(x=Background,y=Mean,group=Sex,colour=Sex))+
-#   ylab("ACT Score")+
-#   geom_line()+
-#   geom_point()+
-#   geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
-
 library(ggplot2)
 ggplot(sumstats,aes(x=ages,y=Mean,group=review_difficulty,colour=review_difficulty))+
   ylab("Play Star Rating")+
