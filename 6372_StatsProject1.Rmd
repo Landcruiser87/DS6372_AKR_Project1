@@ -43,15 +43,12 @@ sumstats
 pairs(legos[-c(1,6:8,10,12)])
 
 library(ggplot2)
-ggplot(sumstats,aes(x=ages,y=Mean,group=review_difficulty,colour=review_difficulty))+
+ggplot(sumstats,aes(x=review_difficulty,y=Mean,group=ages,colour=ages))+
   ylab("Play Star Rating")+
   geom_line()+
   geom_point()+
   geom_point()+
   geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
-
-
-
 
 ```
 
