@@ -9,9 +9,9 @@ output: html_document
 
 ###Load / View Data
 ```{r}
-setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Project")
+#setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Project")
 
-df <- read.csv("lego_sets.csv")
+df <- read.csv("datasets/lego_sets.csv")
 
 ```
 
