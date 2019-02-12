@@ -97,8 +97,16 @@ ggplot(sumstats,aes(x=Agency,y=Mean,group=Level,colour=Level))+
   geom_point()+
   geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
 
-#Residual PLots 
+#Residual Plots 
 ```{r ResidualJazzed, fig.height=4}
+
+#Initial Plots
+model.fit<-aov(Salary.Range.From~Level+Agency+Level:Agency,data=jobs)
+par(mfrow=c(1,2))
+plot(model.fit$fitted.values,model.fit$residuals,ylab="Resdiduals",xlab="Fitted")
+qqnorm(model.fit$residuals)
+
+#Fancier plots
 library(gridExtra)
 myfits<-data.frame(fitted.values=model.fit$fitted.values,residuals=model.fit$residuals)
 
