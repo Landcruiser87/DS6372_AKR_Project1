@@ -97,6 +97,25 @@ ggplot(sumstats,aes(x=Agency,y=Mean,group=Level,colour=Level))+
   geom_point()+
   geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
 
+#Residual PLots 
+```{r ResidualJazzed, fig.height=4}
+library(gridExtra)
+myfits<-data.frame(fitted.values=model.fit$fitted.values,residuals=model.fit$residuals)
+
+#Residual vs Fitted
+plot1<-ggplot(myfits,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
+  xlab("Predicted")+geom_point()
+
+#QQ plot of residuals  #Note the diagonal abline is only good for qqplots of normal data.
+plot2<-ggplot(myfits,aes(sample=residuals))+
+  stat_qq()+geom_abline(intercept=mean(myfits$residuals), slope = sd(myfits$residuals))
+
+#Histogram of residuals
+plot3<-ggplot(myfits, aes(x=residuals)) + 
+  geom_histogram(aes(y=..density..),binwidth=1,color="black", fill="gray")+
+  geom_density(alpha=.1, fill="red")
+
+grid.arrange(plot1, plot2,plot3, ncol=3)
 ```
 
 ``` {r Test Code}
