@@ -55,21 +55,31 @@ MergedData = rbind(test,train)
 # write.csv(MergedData, file = "Merged.csv")
 #Due to time constraints, I'm exporting the data to clean in excel and then reimporting it.  Nevermind, i have to do it in R
 
+names <- c('MSZoning','Street','Alley','LotShape','LandContour',
+           'Utilities','LotConfig','LandSlope','Neighborhood',
+           'Condition1','Condition2','BldgType','HouseStyle','RoofStyle',
+           'RoofMatl','Exterior1st','Exterior2nd','MasVnrType','ExterQual',
+           'ExterCond','Foundation','BsmtQual','BsmtCond','BsmtExposure',
+           'BsmtFinType1','BsmtFinType2','Heating','HeatingQC','CentralAir',
+           'Electrical','KitchenQual','Functional','FireplaceQu','GarageType',
+           'GarageFinish','GarageQual','GarageCond','PavedDrive','PoolQC','Fence',
+           'MiscFeature','SaleType','SaleCondition')
+MergedData[,names] <- lapply(MergedData[,names] , factor)
+str(MergedData)
 
 
 #Change Alley NA data to none.
-MergedData$Alley[which(is.na(MergedData$Alley))] <- "None"
+MergedData$Alley[as.factor(which(is.na(MergedData$Alley)))] <- "None"
 
 #Change Fireplace NA to none
 MergedData$FireplaceQu[which(is.na(MergedData$FireplaceQu))] <- 0
 
 
 
-
 FirstFocus <- data.frame(index = names(MergedData), BadData = Dataholes)
 FirstFocus[FirstFocus$BadData > 0,]
 
-
+str(MergedData)
 table(MergedData$Alley)
 
 
