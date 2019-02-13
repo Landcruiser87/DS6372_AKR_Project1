@@ -1,6 +1,6 @@
 ---
 title: "AmesHousing"
-author: "Andy Heroy"
+author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
 date: "February 13, 2019"
 output: html_document
 ---
@@ -45,9 +45,34 @@ FirstFocus[FirstFocus$BadData > 0,]
 
 #From the looks of it we have alot of Na data in some of the categorical variables.  We will address those next in the data cleansing process.
 
+test$SalePrice = NA
+train$isTrain <- 1
+test$isTrain <- 0
+MergedData = rbind(test,train)
+
+# str(MergedData)
+# 
+# write.csv(MergedData, file = "Merged.csv")
+#Due to time constraints, I'm exporting the data to clean in excel and then reimporting it.  Nevermind, i have to do it in R
 
 
-  
+
+#Change Alley NA data to none.
+MergedData$Alley[which(is.na(MergedData$Alley))] <- "None"
+
+#Change Fireplace NA to none
+MergedData$FireplaceQu[which(is.na(MergedData$FireplaceQu))] <- 0
+
+
+
+
+FirstFocus <- data.frame(index = names(MergedData), BadData = Dataholes)
+FirstFocus[FirstFocus$BadData > 0,]
+
+
+table(MergedData$Alley)
+
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
