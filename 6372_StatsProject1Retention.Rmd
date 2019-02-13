@@ -1,0 +1,141 @@
+---
+title: "Stats 2 Project 1 Jerbs"
+author: "Kito Patterson <br />  Andy Heroy <br /> Ryan Quincy Paul "
+date: "2/7/2019"
+output: html_document
+---
+
+
+
+### Load / View Data
+[NYC Jobs](https://data.cityofnewyork.us/City-Government/NYC-Jobs/kpav-sd4t)
+```{r}
+df <- read.csv("datasets/JobRetention.csv")
+
+```
+
+### Remove description columns and check datatypes
+```{r echo=TRUE}
+jobs <- df
+#Staying positive and with names
+#jobs <- df[, names(df) %in% c("Agency","Posting.Type","X..Of.Positions","Civil.Service.Title","Level","Job.Category","Full.Time.Part.Time.indicator","Salary.Range.From","Salary.Frequency")]
+
+#let's only keep annual salaries and fulltime
+#jobs <- jobs[jobs$Salary.Frequency == "Annual" & jobs$Full.Time.Part.Time.indicator == "F" & !is.na(jobs$Salary.Range.From),]
+#jobs <- jobs[jobs$Salary.Range.From > 0,]
+
+#Code showing top salaries
+#library(dplyr)
+#jobs[jobs$Salary.Range.From > 0,] %>%
+#  arrange(desc(Salary.Range.From)) %>%
+#  select("Salary.Range.From") %>%
+#  slice(1:50)
+```
+
+
+### Exploratory Analysis
+```{r EDAGraphs_and_such, fig.height=4}
+mysummary<-function(x){
+  result<-c(length(x),mean(x),sd(x),sd(x)/sqrt(length(x)))
+  names(result)<-c("N","Mean","SD","SE")
+  return(result)
+}
+
+
+
+sumstats<-aggregate(MonthlyIncome~Gender+JobRole,data=jobs,mysummary)
+sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
+#sumstats
+
+pairs(jobs[, names(jobs) %in% c("Gender","Department","Education","JobRole","MonthlyIncome","PerformanceRating")])
+
+
+library(ggplot2)
+ggplot(sumstats,aes(x=JobRole,y=Mean,group=Gender,colour=Gender))+
+  ylab("Starting Salary")+
+  geom_line()+
+  geom_point()+
+  geom_point()+
+  geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)+
+  theme(axis.text.x = element_text(size=7, angle=45))
+
+sumstats<-aggregate(MonthlyIncome~Education+JobRole,data=jobs,mysummary)
+sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
+
+ggplot(sumstats,aes(x=JobRole,y=Mean,group=Education,colour=Education))+
+  ylab("Starting Salary")+
+  geom_line()+
+  geom_point()+
+  geom_point()+
+  geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)+
+  theme(axis.text.x = element_text(size=7, angle=45))
+
+sumstats<-aggregate(MonthlyIncome~Department+JobRole,data=jobs,mysummary)
+sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
+
+ggplot(sumstats,aes(x=JobRole,y=Mean,group=Department,colour=Department))+
+  ylab("Starting Salary")+
+  geom_line()+
+  geom_point()+
+  geom_point()+
+  geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)+
+  theme(axis.text.x = element_text(size=7, angle=45))
+
+#Same but without manager positions and removing salaries greater than 135000 (outliers)
+# jobs <- jobs[jobs$Salary.Range.From <135000,]
+# 
+# sumstats<-aggregate(Salary.Range.From~Level*Agency,data=jobs,mysummary)
+# sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
+#sumstats
+# 
+# pairs(jobs[, names(jobs) %in% c("Agency","Civil.Service.Title","Level","Job.Category","Salary.Range.From")])
+# 
+# ggplot(sumstats,aes(x=Agency,y=Mean,group=Level,colour=Level))+
+#   ylab("Starting Salary")+
+#   geom_line()+
+#   geom_point()+
+#   geom_point()+
+#   geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
+# 
+# #Residual Plots 
+# ```{r ResidualJazzed, fig.height=4}
+# 
+#Initial Plots Gender
+model.fit<-aov(MonthlyIncome~Gender+Education+JobRole,data=jobs)
+par(mfrow=c(1,2))
+plot(model.fit$fitted.values,model.fit$residuals,ylab="Resdiduals",xlab="Fitted")
+qqnorm(model.fit$residuals)
+
+#Fancier plots
+library(gridExtra)
+myfits<-data.frame(fitted.values=model.fit$fitted.values,residuals=model.fit$residuals)
+
+#Residual vs Fitted
+plot1<-ggplot(myfits,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
+  xlab("Predicted")+geom_point()
+
+#QQ plot of residuals  #Note the diagonal abline is only good for qqplots of normal data.
+plot2<-ggplot(myfits,aes(sample=residuals))+
+  stat_qq()+geom_abline(intercept=mean(myfits$residuals), slope = sd(myfits$residuals))
+
+#Histogram of residuals
+plot3<-ggplot(myfits, aes(x=residuals)) +
+  geom_histogram(aes(y=..density..),binwidth=1,color="black", fill="gray")+
+  geom_density(alpha=.1, fill="red")
+
+grid.arrange(plot1, plot2,plot3, ncol=3)
+```
+
+``` {r Test Code}
+
+
+# 
+# par(mfrow=c(1,2))
+# plot(review_difficulty,play_star_rating, xlab="Review Difficulty",ylab="Play Rating")
+# new<-data.frame(review_difficulty=seq(30,300,.1))
+# lines(seq(30,300,.1),predict(lm(play_star_rating~review_difficulty),newdata=new),col="red",lwd=4)
+# 
+# plot(as.factor(review_difficulty), play_star_rating,xlab="Review difficulty",ylab="Play Rating",title="Auto Data Set",col=c(7,32,57,82,107))
+
+
+```
