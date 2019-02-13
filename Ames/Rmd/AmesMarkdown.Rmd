@@ -43,7 +43,9 @@ Dataholes <- sapply(train, function(x) sum(is.na(x)))
 FirstFocus <- data.frame(index = names(train), BadData = Dataholes)
 FirstFocus[FirstFocus$BadData > 0,]
 
-#From the looks of it we have alot of Na data in some of the categorical values
+#From the looks of it we have alot of Na data in some of the categorical variables.  We will address those next in the data cleansing process.
+
+
 
   
 ```
