@@ -69,7 +69,7 @@ str(MergedData)
 
 
 #Change Alley NA data to none.
-MergedData$Alley[as.factor(which(is.na(MergedData$Alley)))] <- "None"
+MergedData$Alley[which(is.na(MergedData$Alley))] <- "None"
 
 #Change Fireplace NA to none
 MergedData$FireplaceQu[which(is.na(MergedData$FireplaceQu))] <- 0
