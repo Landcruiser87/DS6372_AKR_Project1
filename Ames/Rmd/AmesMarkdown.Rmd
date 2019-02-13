@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
 
 ```{r Dataload}
+
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
 
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
@@ -28,17 +29,25 @@ test <- read.csv("test.csv", stringsAsFactors = FALSE)
 For our initial foray into the data we will need to do alot of cleaning in terms of the data itself so we can focus on which factors have correlation and influence on the dataset. 
 
 ```{r EDAandDatacleaning}
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+
 
 #First lets just plot the GrLivArea by sale price to get an initial feel for the data
+ggplot(train, aes(x=GrLivArea, y=SalePrice))+ geom_point()
+#We might want to ax those four houses that could be causing leverage as they're so far out there.  We will keep note going forward.
 
 
 Dataholes <- sapply(train, function(x) sum(is.na(x)))
 FirstFocus <- data.frame(index = names(train), BadData = Dataholes)
 FirstFocus[FirstFocus$BadData > 0,]
 
-#From the looks of it we have alot of Na data in some of the categorical values
+#From the looks of it we have alot of Na data in some of the categorical variables.  We will address those next in the data cleansing process.
 
-.  
+
+
+  
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
