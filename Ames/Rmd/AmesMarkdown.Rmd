@@ -1,0 +1,44 @@
+---
+title: "AmesHousing"
+author: "Andy Heroy"
+date: "February 13, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
+
+```{r Dataload}
+setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
+
+train <- read.csv("train.csv", stringsAsFactors = FALSE)
+test <- read.csv("test.csv", stringsAsFactors = FALSE)
+
+
+
+```
+
+## Exploratory Data Analysis
+
+For our initial foray into the data we will need to do alot of cleaning in terms of the data itself so we can focus on which factors have correlation and influence on the dataset. 
+
+```{r EDAandDatacleaning}
+
+#First lets just plot the GrLivArea by sale price to get an initial feel for the data
+
+
+Dataholes <- sapply(train, function(x) sum(is.na(x)))
+FirstFocus <- data.frame(index = names(train), BadData = Dataholes)
+FirstFocus[FirstFocus$BadData > 0,]
+
+#From the looks of it we have alot of Na data in some of the categorical values
+
+.  
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
