@@ -1,3 +1,4 @@
+
 ---
 title: "AmesHousing"
 author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
@@ -15,6 +16,7 @@ Many variables influence the sale price of a home. We will estimate how sale pri
 
 ```{r Dataload}
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
+
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
 test <- read.csv("test.csv", stringsAsFactors = FALSE)
 ```
@@ -100,11 +102,6 @@ count(df3,GarageArea)
 
 
 
-
-
-
-
-
 ## Introduction
 
 Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
@@ -165,18 +162,3 @@ table(MergedData$Alley)
 
 ```{r ANOVA}
 ```
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-© 2019 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Help
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About
-Press h to open a hovercard with more details.
