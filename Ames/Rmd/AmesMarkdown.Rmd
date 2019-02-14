@@ -15,12 +15,10 @@ knitr::opts_chunk$set(echo = TRUE)
 Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
 
 ```{r Dataload}
-
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
 
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
 test <- read.csv("test.csv", stringsAsFactors = FALSE)
-
 ```
 
 #Kito's attempt
@@ -28,7 +26,6 @@ test <- read.csv("test.csv", stringsAsFactors = FALSE)
 train$split <- "train" #Add column to delineate train
 test$split <- "test" #Add column to delineate test
 test$SalePrice <- 999 #Dummy value for empty SalePrice
-
 df <- rbind(train, test) #Append train and test to make data cleanup easier
 ```
 
@@ -38,8 +35,10 @@ df2 <- subset(df, SaleCondition=="Normal") #Filter df
 
 ```{r}
 colSums(is.na(df3)) #check NA's by column
-```
 count(df3,GarageQual)
+
+```
+
 ```{r}
 #Remove rows with NA values per column
 df3 <- df2[!is.na(df2$MSZoning),]
@@ -51,6 +50,8 @@ df3 <- df3[!is.na(df3$Electrical),]
 df3 <- df3[!is.na(df3$BsmtFullBath),]
 df3 <- df3[!is.na(df3$BsmtHalfBath),]
 df3 <- df3[!is.na(df3$SaleType),]
+
+
 ```
 
 ```{r}
@@ -70,6 +71,12 @@ df3$TotalSqFt <- df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea
 df3$TotalPorchSqFt <- df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch
 df3$TotalBaths <- df3$BsmtFullBath+df3$BsmtHalfBath+df3$FullBath+df3$HalfBath
 df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
+
+#Column removal of calced column components,  I left the house age and total Sqr foot as they may have something we can use for MLR. 
+names(df3)
+df3 <- df[ -c(48:51,68:71)]
+
+
 ```
 
 ```{r}
@@ -80,20 +87,18 @@ df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.fact
 ```
 
 #How should we treat GarageYearBuilt and GarageArea. Turn to blank?
+
 #Still need to remove outliers
 #May still need to turn some int columns to factors as well 
 
+```{r}
+# Dataholes <- sapply(df3, function(x) sum(is.na(x)))
+# FirstFocus <- data.frame(index = names(df3), BadData = Dataholes)
+# FirstFocus[FirstFocus$BadData > 0,]
+count(df3,GarageArea)
 
 
-
-
-
-
-
-
-
-
-
+```
 
 
 
@@ -102,12 +107,9 @@ df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.fact
 Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
 
 ```{r Dataload}
-
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
-
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
 test <- read.csv("test.csv", stringsAsFactors = FALSE)
-
 ```
 
 ## Exploratory Data Analysis
@@ -118,29 +120,21 @@ For our initial foray into the data we will need to do alot of cleaning in terms
 library(ggplot2)
 library(corrplot)
 library(dplyr)
-
-
 #First lets just plot the GrLivArea by sale price to get an initial feel for the data
 ggplot(train, aes(x=GrLivArea, y=SalePrice))+ geom_point()
 #We might want to ax those four houses that could be causing leverage as they're so far out there.  We will keep note going forward.
-
-
 Dataholes <- sapply(train, function(x) sum(is.na(x)))
 FirstFocus <- data.frame(index = names(train), BadData = Dataholes)
 FirstFocus[FirstFocus$BadData > 0,]
-
 #From the looks of it we have alot of Na data in some of the categorical variables.  We will address those next in the data cleansing process.
-
 test$SalePrice = NA
 train$isTrain <- 1
 test$isTrain <- 0
 MergedData = rbind(test,train)
-
 # str(MergedData)
 # 
 # write.csv(MergedData, file = "Merged.csv")
 #Due to time constraints, I'm exporting the data to clean in excel and then reimporting it.  Nevermind, i have to do it in R
-
 names <- c('MSZoning','Street','Alley','LotShape','LandContour',
            'Utilities','LotConfig','LandSlope','Neighborhood',
            'Condition1','Condition2','BldgType','HouseStyle','RoofStyle',
@@ -152,36 +146,19 @@ names <- c('MSZoning','Street','Alley','LotShape','LandContour',
            'MiscFeature','SaleType','SaleCondition')
 MergedData[,names] <- lapply(MergedData[,names] , factor)
 str(MergedData)
-
-
 #Change Alley NA data to none.
 MergedData$Alley[which(is.na(MergedData$Alley))] <- "None"
-
 #Change Fireplace NA to none
 MergedData$FireplaceQu[which(is.na(MergedData$FireplaceQu))] <- 0
-
-
-
 FirstFocus <- data.frame(index = names(MergedData), BadData = Dataholes)
 FirstFocus[FirstFocus$BadData > 0,]
-
 str(MergedData)
 table(MergedData$Alley)
-
-
 ```
 
 ```{r MLRSection}
-
-
-
 ```
 
 
 ```{r ANOVA}
-
-
-
 ```
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
