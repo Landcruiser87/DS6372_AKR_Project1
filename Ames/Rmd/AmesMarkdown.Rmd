@@ -36,9 +36,9 @@ df2 <- subset(df, SaleCondition=="Normal") #Filter df
 ```
 
 ```{r}
-colSums(is.na(df2)) #check NA's by column
+colSums(is.na(df3)) #check NA's by column
 ```
-
+count(df3,GarageQual)
 ```{r}
 #Remove rows with NA values per column
 df3 <- df2[!is.na(df2$MSZoning),]
@@ -58,13 +58,17 @@ df3$LotFrontage[is.na(df3$LotFrontage)] <- 0
 ```
 
 ```{r}
+#Transform reamining NA values to "Not_app"
+df3[is.na(df3)] <- "not_app"
+```
+
+```{r}
 #Feature Creation
-#NEED TO DEBUG
 #Should probably remove the individual columns from df once calcs are working
-df$TotalSqFt <- df3$GrLivArea+df3$TotalBsmtSF+df3$GarageArea
-df$TotalPorchSqFt <- df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch
-df$TotalBaths <- df3$BsmtFullBath+df3$BsmtHalfBath+df3$FullBath+df3$HalfBath
-df$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
+df3$TotalSqFt <- df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea
+df3$TotalPorchSqFt <- df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch
+df3$TotalBaths <- df3$BsmtFullBath+df3$BsmtHalfBath+df3$FullBath+df3$HalfBath
+df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
 ```
 
 ```{r}
@@ -77,6 +81,7 @@ df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.fact
 #How should we treat GarageYearBuilt and GarageArea. Turn to blank?
 #Still need to remove outliers
 #May still need to turn some int columns to factors as well 
+
 
 
 
