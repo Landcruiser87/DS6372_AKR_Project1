@@ -1,22 +1,3 @@
-Skip to content
- 
-Search or jump to…
-
-Pull requests
-Issues
-Marketplace
-Explore
- @Landcruiser87 Sign out
-2
-0 2 Landcruiser87/DS6372_AKR_Project1
- Code  Issues 0  Pull requests 0  Projects 0  Wiki  Insights  Settings
-DS6372_AKR_Project1/Ames/Rmd/AmesMarkdown.Rmd
-0ad8252  7 hours ago
-@Landcruiser87 Landcruiser87 Update AmesMarkdown.Rmd
-@Landcruiser87 @bbal20
-     
-188 lines (120 sloc)  5.66 KB
-
 ---
 title: "AmesHousing"
 author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
@@ -120,6 +101,10 @@ count(df3,GarageArea)
 
 
 
+
+
+
+
 ## Introduction
 
 Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
@@ -180,3 +165,18 @@ table(MergedData$Alley)
 
 ```{r ANOVA}
 ```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+© 2019 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
+Press h to open a hovercard with more details.
