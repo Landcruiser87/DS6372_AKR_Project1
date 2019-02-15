@@ -19,8 +19,11 @@ Due to unforseen previous problems in other dataset choices, we selected the Ame
 
 As stated above, we will use the Ames housing training dataset for our analysis.  Created by Dean De Cock as a modern alternative to the oudated Boston housing dataset.  The dataset, which was obtained on Kaggle, contains 1460 observations and 79 explanatory variables.   With respect to our analysis, we will be using some of those 79 for analysis, as well as a few of our own created features in the prediction. Many variables influence the sale price of a home. We will estimate the Sale price of the home as it relates too___
 
+### NEED BETTER ENDING ON DATA DESCRIPTION
 
+## Exploratory Data Analaysis
 
+First off, we need to go through and do a little house cleaning with the data.  The following chunks will take you that initial process before we get to some of the graphing and other aspects of what we need to accomplish.  
 ```{r Dataload}
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
