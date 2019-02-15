@@ -23,7 +23,8 @@ As stated above, we will use the Ames housing training dataset for our analysis.
 
 ## Exploratory Data Analaysis
 
-First off, we need to go through and do a little house cleaning with the data.  The following chunks will take you that initial process before we get to some of the graphing and other aspects of what we need to accomplish.  
+First off, we need to go through and do a little house cleaning with the data.  The following chunks will take you that initial process of getting the data clean and presentable for future analysis.  
+
 ```{r Dataload}
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
@@ -33,20 +34,18 @@ library(ggplot2)
 
 ```
 
-#Kito's attempt
-```{r}
+## Kito DataCleaning
+```{r test_test_train_bind}
 train$split <- "train" #Add column to delineate train
 test$split <- "test" #Add column to delineate test
 test$SalePrice <- NA #Dummy value for empty SalePrice
 df <- rbind(train, test) #Append train and test to make data cleanup easier
-```
-
-```{r}
-df2 <- subset(df, SaleCondition=="Normal") #Filter df
+df2 <- subset(df, SaleCondition=="Normal") #Filter df on normal house sales
 
 ```
 
-```{r}
+
+```{r narm_1}
 #Remove rows with NA values per column
 df3 <- df2[!is.na(df2$MSZoning),]
 df3 <- df3[!is.na(df3$Utilities),]
@@ -57,26 +56,22 @@ df3 <- df3[!is.na(df3$Electrical),]
 df3 <- df3[!is.na(df3$BsmtFullBath),]
 df3 <- df3[!is.na(df3$BsmtHalfBath),]
 df3 <- df3[!is.na(df3$SaleType),]
-```
 
-```{r}
 #Check NA's by column
 colSums(is.na(df3)) 
-```
 
-```{r}
 #Replace NA with 0 LotFrontage
 df3$LotFrontage[is.na(df3$LotFrontage)] <- 0
 #Replace NA with blanks GarageYrBlt
 df3$GarageYrBlt[is.na(df3$GarageYrBlt)] <- " "
+
 ```
+
 
 ```{r}
 #Transform reamining NA values to "NA"
 #df3[is.na(df3)] <- "NA"
-#This does some funky stuff I rewrote it to remove replace NA's another way.
-
-
+#This does some funky stuff to the variable types.  I will rework.
 
 
 ```
