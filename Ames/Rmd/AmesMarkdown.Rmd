@@ -1,4 +1,3 @@
-
 ---
   title: "AmesHousing"
 author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
@@ -6,7 +5,7 @@ date: "February 13, 2019"
 output: html_document
 ---
   
-  ```{r setup, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -24,6 +23,8 @@ As stated above, we will use the Ames housing training dataset for our analysis.
 ## Exploratory Data Analaysis
 
 First off, we need to go through and do a little house cleaning with the data.  The following chunks will take you that initial process of getting the data clean and presentable for future analysis.  
+
+### Will Go through and edit that to better mirror what our EDA ends up being.
 
 ```{r Dataload}
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
@@ -71,7 +72,21 @@ df3$GarageYrBlt[is.na(df3$GarageYrBlt)] <- " "
 ```{r}
 #Transform reamining NA values to "NA"
 #df3[is.na(df3)] <- "NA"
-#This does some funky stuff to the variable types.  I will rework.
+#This does some funky stuff to the variable types.  We can't use this and i will go back and change it.  But this for now gets the job done of removing NA's without it messing with the data frame.
+
+# Replacing all numeric "NA" values with 0 #
+# Names of all numeric columns
+df3_num <- names(df3[,sapply(df3,function(x) {is.numeric(x)})])
+df3[,df3_num] <- sapply(df3[,df3_num],function(x){ ifelse(is.na(x),0,x)})
+
+
+# Replacing all character "NA" values with "Not"
+# Names of all character columns
+df3_char <- names(df3[,sapply(df3,function(x){is.character(x)})])
+df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"Not",x)})
+
+#Quick Check for NA values.
+colSums(is.na(df3)) 
 
 
 ```
