@@ -1,24 +1,32 @@
+
 ---
-title: "AmesHousing"
+  title: "AmesHousing"
 author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
 date: "February 13, 2019"
 output: html_document
 ---
-
-```{r setup, include=FALSE}
+  
+  ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
+## Introduction:
 
-Many variables influence the sale price of a home. We will estimate how sale price is related to the square footage of the living room and if the sale price (and its relationship to square footage) depends on which neighborhood the house is located in for the NAmes, Edwards, and BrkSide neighborhoods. We will first utilize Multiple Linear Regression, then a Two-way ANOVA in order to analyze our regression models. 
+Due to unforseen previous problems in other dataset choices, we selected the Ames housing dataset in order to complete our assignment.  We apologize for the repetition and unoriginality that come with this choice, but due to time restraints we needed a dataset that was already vetted and ready for analysis.  we hope to make it an enjoyable and efficient analysis experience.  
+
+
+## Data Description:
+
+As stated above, we will use the Ames housing training dataset for our analysis.  Created by Dean De Cock as a modern alternative to the oudated Boston housing dataset.  The dataset, which was obtained on Kaggle, contains 1460 observations and 79 explanatory variables.   With respect to our analysis, we will be using some of those 79 for analysis, as well as a few of our own created features in the prediction. Many variables influence the sale price of a home. We will estimate the Sale price of the home as it relates too___
+
+
 
 ```{r Dataload}
-
 setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project 1/Ames/house-prices-advanced-regression-techniques")
-
 train <- read.csv("train.csv", stringsAsFactors = FALSE)
 test <- read.csv("test.csv", stringsAsFactors = FALSE)
+library(tidyr)
+library(ggplot2)
 
 ```
 
@@ -26,13 +34,13 @@ test <- read.csv("test.csv", stringsAsFactors = FALSE)
 ```{r}
 train$split <- "train" #Add column to delineate train
 test$split <- "test" #Add column to delineate test
-test$SalePrice <- 999 #Dummy value for empty SalePrice
-
+test$SalePrice <- NA #Dummy value for empty SalePrice
 df <- rbind(train, test) #Append train and test to make data cleanup easier
 ```
 
 ```{r}
 df2 <- subset(df, SaleCondition=="Normal") #Filter df
+
 ```
 
 ```{r}
@@ -62,29 +70,39 @@ df3$GarageYrBlt[is.na(df3$GarageYrBlt)] <- " "
 
 ```{r}
 #Transform reamining NA values to "NA"
-df3[is.na(df3)] <- "NA"
+#df3[is.na(df3)] <- "NA"
+#This does some funky stuff I rewrote it to remove replace NA's another way.
+
+
+
+
 ```
 
 ```{r}
-#Feature Creation
+#Added Features for Analysis
+
 #Should probably remove the individual columns from df once calcs are working
-df3$TotalSqFt <- df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea
-df3$TotalPorchSqFt <- df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch
-df3$TotalBaths <- df3$BsmtFullBath+df3$BsmtHalfBath+df3$FullBath+df3$HalfBath
+df3$TotalSqFt_100 <- (df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea)/100
+df3$TotalPorchSqFt_100 <- (df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch)/100
+df3$TotalBaths <- df3$BsmtFullBath+(df3$BsmtHalfBath*0.5)+df3$FullBath+(df3$HalfBath*0.5)
 df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
 
-#Log Sale Price variable
+# Logged variables for regression
 df3$log_SalePrice <- log(df3$SalePrice)
+df3$log_TotalSqFt_100 <- log(df3$TotalSqFt_100)
+df3$log_TotalBaths <- log(df3$TotalBaths)
+
+
 ```
 
 ```{r}
 #Remove columns used to calculate Features above
-df3 <- subset(df3, select = -c(GrLivArea, TotalBsmtSF, GarageArea, OpenPorchSF, EnclosedPorch, ScreenPorch,
-                               BsmtFullBath, BsmtHalfBath, FullBath, HalfBath, YrSold, YearBuilt))
+#Not sure we need to remove these just yet either.
+df3 <- subset(df3, select = -c(GrLivArea, TotalBsmtSF, GarageArea, OpenPorchSF, EnclosedPorch, ScreenPorch, BsmtFullBath, BsmtHalfBath, FullBath, HalfBath, YrSold, YearBuilt))
 ```
 
 ```{r}
-#Turn all character columns to facotrs 
+#Turn all character columns to factors 
 df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.factor)
 #Another way of doing above
 #df3 <- df %>% mutate_if(is.character,as.factor)
@@ -93,7 +111,7 @@ df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.fact
 ```{r}
 #Initial scatterplot matrix to determine if transformations are needed to create linear relationships 
 #Also to check for multi-collinelarity 
-pairs(~SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + LotArea + 
+pairs(~log_SalePrice + TotalSqFt_100 + TotalPorchSqFt_100 + HouseAge + LotArea + 
         LotFrontage + LotArea + MasVnrArea + PoolArea, data=df3, main="Initial Scatterplot")
 ```
 ```{r fig1, fig.height=10, fig.width=10}
@@ -105,17 +123,17 @@ df3_numeric <- df3[, sapply(df3, is.numeric)]
 df_corr <- round(cor(df3_numeric),2)
 corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title="Variable Corr Heatmap",tl.srt=60)
 ```
- 
+
 ```{r}
 library(Hmisc)
 #Correlation and P-value table
 flat_cor_mat <- function(cor_r, cor_p){
   #This function provides a simple formatting of a correlation matrix
   #into a table with 4 columns containing :
-    # Column 1 : row names (variable 1 for the correlation test)
-    # Column 2 : column names (variable 2 for the correlation test)
-    # Column 3 : the correlation coefficients
-    # Column 4 : the p-values of the correlations
+  # Column 1 : row names (variable 1 for the correlation test)
+  # Column 2 : column names (variable 2 for the correlation test)
+  # Column 3 : the correlation coefficients
+  # Column 4 : the p-values of the correlations
   library(tidyr)
   library(tibble)
   cor_r <- rownames_to_column(as.data.frame(cor_r), var = "row")
@@ -125,87 +143,45 @@ flat_cor_mat <- function(cor_r, cor_p){
   cor_p_matrix <- left_join(cor_r, cor_p, by = c("row", "column"))
   cor_p_matrix
 }
-
 cor_3 <- rcorr(as.matrix(df3_numeric))
-
 my_cor_matrix <- flat_cor_mat(cor_3$r, cor_3$P)
 my_cor_matrix
+
+``` 
+
+
+
+```{r}
+Dataholes <- sapply(df3, function(x) sum(is.na(x)))
+FirstFocus <- data.frame(index = names(df3), BadData = Dataholes)
+FirstFocus[FirstFocus$BadData > 0,]
+
+```
+
+
+```{r MLRSection}
+
+
+
 ```
 
 
 
 
+### Objective 2 - A Two way Anova
 
 
+```{r ANOVA}
 
-
-
-
-
-
-
-
-
-
-## Exploratory Data Analysis
-
-For our initial foray into the data we will need to do alot of cleaning in terms of the data itself so we can focus on which factors have correlation and influence on the dataset. 
-
-```{r EDAandDatacleaning}
 library(ggplot2)
 library(corrplot)
 library(dplyr)
 
-
 #First lets just plot the GrLivArea by sale price to get an initial feel for the data
-ggplot(train, aes(x=GrLivArea, y=SalePrice))+ geom_point()
+ggplot(df3, aes(x=GrLivArea, y=SalePrice))+ geom_point()
 #We might want to ax those four houses that could be causing leverage as they're so far out there.  We will keep note going forward.
-
-
-Dataholes <- sapply(train, function(x) sum(is.na(x)))
-FirstFocus <- data.frame(index = names(train), BadData = Dataholes)
-FirstFocus[FirstFocus$BadData > 0,]
-
-#From the looks of it we have alot of Na data in some of the categorical variables.  We will address those next in the data cleansing process.
-
-test$SalePrice = NA
-train$isTrain <- 1
-test$isTrain <- 0
-MergedData = rbind(test,train)
-
-# str(MergedData)
-# 
-# write.csv(MergedData, file = "Merged.csv")
-#Due to time constraints, I'm exporting the data to clean in excel and then reimporting it.  Nevermind, i have to do it in R
-
-names <- c('MSZoning','Street','Alley','LotShape','LandContour',
-           'Utilities','LotConfig','LandSlope','Neighborhood',
-           'Condition1','Condition2','BldgType','HouseStyle','RoofStyle',
-           'RoofMatl','Exterior1st','Exterior2nd','MasVnrType','ExterQual',
-           'ExterCond','Foundation','BsmtQual','BsmtCond','BsmtExposure',
-           'BsmtFinType1','BsmtFinType2','Heating','HeatingQC','CentralAir',
-           'Electrical','KitchenQual','Functional','FireplaceQu','GarageType',
-           'GarageFinish','GarageQual','GarageCond','PavedDrive','PoolQC','Fence',
-           'MiscFeature','SaleType','SaleCondition')
-MergedData[,names] <- lapply(MergedData[,names] , factor)
-str(MergedData)
-
-
-#Change Alley NA data to none.
-MergedData$Alley[which(is.na(MergedData$Alley))] <- "None"
-
-#Change Fireplace NA to none
-MergedData$FireplaceQu[which(is.na(MergedData$FireplaceQu))] <- 0
-
-
-
-FirstFocus <- data.frame(index = names(MergedData), BadData = Dataholes)
-FirstFocus[FirstFocus$BadData > 0,]
-
-str(MergedData)
-table(MergedData$Alley)
 
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
