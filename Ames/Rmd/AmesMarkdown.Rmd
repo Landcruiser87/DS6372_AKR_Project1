@@ -80,10 +80,10 @@ df3_num <- names(df3[,sapply(df3,function(x) {is.numeric(x)})])
 df3[,df3_num] <- sapply(df3[,df3_num],function(x){ ifelse(is.na(x),0,x)})
 
 
-# Replacing all character "NA" values with "Not"
+# Replacing all character "NA" values with "None"
 # Names of all character columns
 df3_char <- names(df3[,sapply(df3,function(x){is.character(x)})])
-df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"Not",x)})
+df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"None",x)})
 
 #Quick Check for NA values.
 colSums(is.na(df3)) 
@@ -101,7 +101,7 @@ df3$TotalBaths <- df3$BsmtFullBath+(df3$BsmtHalfBath*0.5)+df3$FullBath+(df3$Half
 df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
 
 # Logged variables for regression
-df3$log_SalePrice <- log(df3$SalePrice)
+#df3$log_SalePrice <- log(df3$SalePrice)
 df3$log_TotalSqFt_100 <- log(df3$TotalSqFt_100)
 df3$log_TotalBaths <- log(df3$TotalBaths)
 
@@ -124,7 +124,7 @@ df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.fact
 ```{r}
 #Initial scatterplot matrix to determine if transformations are needed to create linear relationships 
 #Also to check for multi-collinelarity 
-pairs(~log_SalePrice + TotalSqFt_100 + TotalPorchSqFt_100 + HouseAge + LotArea + 
+pairs(~SalePrice + TotalSqFt_100 + TotalPorchSqFt_100 + HouseAge + LotArea + 
         LotFrontage + LotArea + MasVnrArea + PoolArea, data=df3, main="Initial Scatterplot")
 ```
 ```{r fig1, fig.height=10, fig.width=10}
@@ -134,6 +134,8 @@ library(corrplot)
 df3_numeric <- df3[, sapply(df3, is.numeric)]
 #Correlation Plot
 df_corr <- round(cor(df3_numeric),2)
+
+
 corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title="Variable Corr Heatmap",tl.srt=60)
 ```
 
