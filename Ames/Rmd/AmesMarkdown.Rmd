@@ -338,7 +338,7 @@ points(index,testASE[index],col="red",pch=10)
 rss<-summary(reg.fwd)$rss
 
 testSampleSize <- dim(mlrHousesTest)[1]
-lines(1:51,rss/testSampleSizeze,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
+lines(1:51,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
 ```
 
 
