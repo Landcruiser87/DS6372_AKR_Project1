@@ -342,10 +342,10 @@ lines(1:51,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/
 ```
 
 
-
-
 ### Objective 2 - A Two way Anova
 
+
+Whenever anyone is looking to buy a house, there's always one common metric that comes up.  Total Square feet, which is an added feature but something that always is associated with the buying of a house.  Due to most poeple out there all driving cars or need private maker shops of their own, The second categorical value we chose for a two way anova was GarageType.  We midwesterners are very concerned with our vehicles because if we want to get anywhere its going to take at least a 2 hour car ride to get there.
 
 ```{r ANOVA}
 
@@ -353,11 +353,56 @@ library(ggplot2)
 library(corrplot)
 library(dplyr)
 
-#First lets just plot the GrLivArea by sale price to get an initial feel for the data
-#ggplot(df3, aes(x=GrLivArea, y=SalePrice))+ geom_point()
-#We might want to ax those four houses that could be causing leverage as they're so far out there.  We will keep note going forward.
+
+Clean.train <- subset(df3, split=="train")
+
+ggplot(Clean.train, aes(x = TotalSqFt_100, y = SalePrice)) +
+        geom_point(shape=1) + 
+        geom_smooth(method=lm, se=FALSE) +   
+        xlab("Total Square Footage") +
+        ylab("Sale Price") +
+        theme(text = element_text(size=9)) +
+        ggtitle("Total Sq Foot") 
+
+ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
+        geom_point(shape=1) + 
+        geom_smooth(method=lm, se=FALSE) +   
+        xlab("Garage Type") +
+        ylab("Sale Price") +
+        theme(text = element_text(size=9)) +
+        ggtitle("Garage Type") 
+
+
+ano.fit <-aov(log(SalePrice)~TotalSqFt_100+GarageType+TotalSqFt_100:GarageType,data=Clean.train)
+
+library(car)
+Anova(ano.fit,type=3)
 
 
 ```
 
+
+
+```{r Residual_Plotting, fig.height=4}
+require(gridExtra)
+library(gridExtra)
+
+
+myfits<-data.frame(fitted.values=ano.fit$fitted.values,residuals=ano.fit$residuals)
+
+#Residual vs Fitted
+plot1<-ggplot(myfits,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
+  xlab("Predicted")+geom_point()
+
+#QQ plot of residuals  #Note the diagonal abline is only good for qqplots of normal data.
+plot2<-ggplot(myfits,aes(sample=residuals))+
+  stat_qq()+geom_abline(intercept=mean(myfits$residuals), slope = sd(myfits$residuals))
+
+
+#Histogram of residuals
+plot3<-ggplot(myfits, aes(x=residuals)) + 
+  geom_histogram(aes(y=..density..),binwidth=100,color="black", fill="gray")+
+  geom_density(alpha=.1, fill="red")
+
+grid.arrange(plot1, plot2,plot3, ncol=3)
 
