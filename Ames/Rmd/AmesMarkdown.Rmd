@@ -1,5 +1,5 @@
 ---
-  title: "AmesHousing"
+title: "AmesHousing"
 author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
 date: "February 13, 2019"
 output: html_document
@@ -27,11 +27,17 @@ First off, we need to go through and do a little house cleaning with the data.  
 ### Will Go through and edit that to better mirror what our EDA ends up being.
 
 ```{r Dataload}
+
 #setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project #1/Ames/house-prices-advanced-regression-techniques")
-train <- read.csv("train.csv", stringsAsFactors = FALSE)
-test <- read.csv("test.csv", stringsAsFactors = FALSE)
+#train <- read.csv("train.csv", stringsAsFactors = FALSE)
+#test <- read.csv("test.csv", stringsAsFactors = FALSE)
+#As long as we all have the new folder structure, the following should work for all of us without having to change paths or manually moving files...
+train <- read.csv("../Datasets/train.csv", stringsAsFactors = FALSE)
+test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
+
 library(tidyr)
 library(ggplot2)
+library(dplyr)
 
 ```
 
@@ -259,8 +265,80 @@ FirstFocus[FirstFocus$BadData > 0,]
 
 ```{r MLRSection}
 
+set.seed(1234) #not sure what protocol is for set.seed, we did this so our homeworks would match, but we probably want this to be actually random?
 
 
+# Getting back just the training set from massaged data
+trainingSet <- df3[df3$split == "train",]
+
+#there are 1193 observations. Divide in half
+index<-sample(1:dim(trainingSet)[1], dim(trainingSet)[1] / 2, replace = F)
+
+# dropping Utilities and SaleCondition (we filtered for only Normal) because they only have 1 level
+columnsToDrop <- c("Utilities", "SaleCondition","log_TotalBaths","TotalSqFt_100","Id","split")
+trainingSet <- trainingSet[, !names(trainingSet) %in% columnsToDrop]
+
+#removing for high colinearity
+#highVifColumns <- c("MSSubClass","LotArea","OverallQual","YearRemodAdd","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF","X1stFlrSF","X2ndFlrSF","KitchenAbvGr","TotRmsAbvGrd","Fireplaces","GarageCars","PoolArea","MiscVal","HouseAge","GarageYrBlt","Exterior1st","Exterior2nd","Condition1","Condition2","ExterQual","ExterCond")
+
+#trainingSet <- trainingSet[, !names(trainingSet) %in% c(columnsToDrop,highVifColumns)]
+
+
+#columnsToInclude <- c("LotArea","MasVnrArea","BsmtFinSF1","Fireplaces","X1stFlrSF","log_TotalSqFt_100","WoodDeckSF","YearRemodAdd","TotalBaths","OverallQual","GarageCars","SalePrice")
+#trainingSet <- trainingSet[, names(trainingSet) %in% columnsToInclude]
+
+#splitting into train and test, since the test we are given doesn't have the actual values
+mlrHousesTrain<-trainingSet[index,]
+mlrHousesTest<-trainingSet[-index,]
+
+library(leaps)
+
+
+reg.fwd=regsubsets(log(SalePrice)~., data = mlrHousesTrain, method = "forward", nvmax = 50)
+
+summary(reg.fwd)$adjr2
+summary(reg.fwd)$rss
+summary(reg.fwd)$bic
+
+
+par(mfrow=c(1,3))
+bics<-summary(reg.fwd)$bic
+plot(1:51,bics,type="l",ylab="BIC",xlab="# of predictors")
+index<-which(bics==min(bics))
+points(index,bics[index],col="red",pch=10)
+
+adjr2<-summary(reg.fwd)$adjr2
+plot(1:51,adjr2,type="l",ylab="Adjusted R-squared",xlab="# of predictors")
+index<-which(adjr2==max(adjr2))
+points(index,adjr2[index],col="red",pch=10)
+
+rss<-summary(reg.fwd)$rss
+plot(1:51,rss,type="l",ylab="train RSS",xlab="# of predictors")
+index<-which(rss==min(rss))
+points(index,rss[index],col="red",pch=10)
+
+predict.regsubsets =function (object , newdata ,id ,...){
+  form=as.formula (object$call [[2]])
+  mat=model.matrix(form ,newdata )
+  coefi=coef(object ,id=id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+testASE<-c()
+#note my index is to 20 since that what I set it in regsubsets
+for (i in 1:51){
+  predictions<-predict.regsubsets(object=reg.fwd,newdata=mlrHousesTest,id=i) 
+  testASE[i]<-mean((log(mlrHousesTest$SalePrice)-predictions)^2)
+}
+par(mfrow=c(1,1))
+plot(1:51,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE",ylim=c(0,1))
+index<-which(testASE==min(testASE))
+points(index,testASE[index],col="red",pch=10)
+rss<-summary(reg.fwd)$rss
+
+testSampleSize <- dim(mlrHousesTest)[1]
+lines(1:51,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
 ```
 
 
@@ -276,7 +354,7 @@ library(corrplot)
 library(dplyr)
 
 #First lets just plot the GrLivArea by sale price to get an initial feel for the data
-ggplot(df3, aes(x=GrLivArea, y=SalePrice))+ geom_point()
+#ggplot(df3, aes(x=GrLivArea, y=SalePrice))+ geom_point()
 #We might want to ax those four houses that could be causing leverage as they're so far out there.  We will keep note going forward.
 
 
