@@ -27,8 +27,7 @@ First off, we need to go through and do a little house cleaning with the data.  
 ### Will Go through and edit that to better mirror what our EDA ends up being.
 
 ```{r Dataload}
-
-#setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project #1/Ames/house-prices-advanced-regression-techniques")
+#setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project1/Ames/house-prices-advanced-regression-techniques")
 #train <- read.csv("train.csv", stringsAsFactors = FALSE)
 #test <- read.csv("test.csv", stringsAsFactors = FALSE)
 #As long as we all have the new folder structure, the following should work for all of us without having to change paths or manually moving files...
@@ -154,6 +153,7 @@ pairs(~SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge +
         LotFrontage + LotArea + MasVnrArea + PoolArea, data=df_train, main="Untransformed Scatterplot")
 
 #Different Scatterplot view
+require(psych)
 library(psych)
 pairs.panels(df_train[,c("SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAge","LotFrontage", 
                          "LotArea", "MasVnrArea", "PoolArea")],
@@ -234,7 +234,7 @@ flat_cor_mat <- function(cor_r, cor_p){
 }
 cor_3 <- rcorr(as.matrix(df_train_numeric))
 my_cor_matrix <- flat_cor_mat(cor_3$r, cor_3$P)
-my_cor_matrix
+head(my_cor_matrix, 5)
 
 ``` 
 
@@ -338,7 +338,7 @@ points(index,testASE[index],col="red",pch=10)
 rss<-summary(reg.fwd)$rss
 
 testSampleSize <- dim(mlrHousesTest)[1]
-lines(1:51,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
+lines(1:51,rss/testSampleSizeze,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
 ```
 
 
@@ -356,7 +356,7 @@ library(dplyr)
 
 Clean.train <- subset(df3, split=="train")
 
-ggplot(Clean.train, aes(x = TotalSqFt_100, y = SalePrice)) +
+ggplot(Clean.train, aes(x = TotalSqFt, y = SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
         xlab("Total Square Footage") +
@@ -373,7 +373,7 @@ ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
         ggtitle("Garage Type") 
 
 
-ano.fit <-aov(log(SalePrice)~TotalSqFt_100+GarageType+TotalSqFt_100:GarageType,data=Clean.train)
+ano.fit <-aov(log(SalePrice)~TotalSqFt+GarageType+TotalSqFt:GarageType,data=Clean.train)
 
 library(car)
 Anova(ano.fit,type=3)
@@ -401,8 +401,9 @@ plot2<-ggplot(myfits,aes(sample=residuals))+
 
 #Histogram of residuals
 plot3<-ggplot(myfits, aes(x=residuals)) + 
-  geom_histogram(aes(y=..density..),binwidth=100,color="black", fill="gray")+
+  geom_histogram(aes(y=..density..),binwidth=1,color="black", fill="gray")+
   geom_density(alpha=.1, fill="red")
 
 grid.arrange(plot1, plot2,plot3, ncol=3)
 
+```
