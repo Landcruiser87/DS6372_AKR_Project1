@@ -1,0 +1,285 @@
+---
+  title: "AmesHousing"
+author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
+date: "February 13, 2019"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction:
+
+Due to unforseen previous problems in other dataset choices, we selected the Ames housing dataset in order to complete our assignment.  We apologize for the repetition and unoriginality that come with this choice, but due to time restraints we needed a dataset that was already vetted and ready for analysis.  we hope to make it an enjoyable and efficient analysis experience.  
+
+
+## Data Description:
+
+As stated above, we will use the Ames housing training dataset for our analysis.  Created by Dean De Cock as a modern alternative to the oudated Boston housing dataset.  The dataset, which was obtained on Kaggle, contains 1460 observations and 79 explanatory variables.   With respect to our analysis, we will be using some of those 79 for analysis, as well as a few of our own created features in the prediction. Many variables influence the sale price of a home. We will estimate the Sale price of the home as it relates too___
+
+### NEED BETTER ENDING ON DATA DESCRIPTION
+
+## Exploratory Data Analaysis
+
+First off, we need to go through and do a little house cleaning with the data.  The following chunks will take you through that initial process of getting the data clean and presentable for future analysis.  
+
+### Will Go through and edit that to better mirror what our EDA ends up being.
+
+```{r Dataload}
+#setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project #1/Ames/house-prices-advanced-regression-techniques")
+train <- read.csv("train.csv", stringsAsFactors = FALSE)
+test <- read.csv("test.csv", stringsAsFactors = FALSE)
+library(tidyr)
+library(ggplot2)
+
+```
+
+## Kito DataCleaning
+```{r test_test_train_bind}
+train$split <- "train" #Add column to delineate train
+test$split <- "test" #Add column to delineate test
+test$SalePrice <- NA #Dummy value for empty SalePrice
+df <- rbind(train, test) #Append train and test to make data cleanup easier
+df2 <- subset(df, SaleCondition=="Normal" & MSZoning !="C (all)" & Functional != "Sev") #Subset to represent typical purchases
+
+```
+
+```{r narm_1}
+#Remove rows with NA values per column
+#df3 <- df2[!is.na(df2$MSZoning),] #Nothing to remove 
+df3 <- df2[!is.na(df2$Utilities),]
+df3 <- df3[!is.na(df3$Exterior1st),]
+df3 <- df3[!is.na(df3$Exterior2nd),]
+df3 <- df3[!is.na(df3$MasVnrType),] #Removes same rows for MsVnrArea
+df3 <- df3[!is.na(df3$Electrical),]
+df3 <- df3[!is.na(df3$BsmtFullBath),]
+df3 <- df3[!is.na(df3$BsmtHalfBath),]
+df3 <- df3[!is.na(df3$SaleType),]
+
+#Check NA's by column
+colSums(is.na(df3)) 
+
+#Replace NA with 0 LotFrontage
+df3$LotFrontage[is.na(df3$LotFrontage)] <- 0
+
+#Replace NA with YearBuilt for GarageYrBlt 
+df3$GarageYrBlt <- ifelse(is.na(df3$GarageYrBlt) & !is.na(df3$GarageType), df3$YearBuilt, df3$GarageYrBlt)
+
+```
+
+```{r}
+#Transform remaining NA values to "NA"
+#df3[is.na(df3)] <- "NA"
+#This does some funky stuff to the variable types.  We can't use this and i will go back and change it.  But this for now gets the job done of removing NA's without it messing with the data frame.
+
+# Replacing all numeric "NA" values with 0 #
+# Names of all numeric columns
+# This changes SalePrice for "test" 0 do we want to leave blank?
+df3_num <- names(df3[,sapply(df3,function(x) {is.numeric(x)})])
+df3[,df3_num] <- sapply(df3[,df3_num],function(x){ ifelse(is.na(x),0,x)})
+
+
+# Replacing all character "NA" values with "None"
+# Names of all character columns
+df3_char <- names(df3[,sapply(df3,function(x){is.character(x)})])
+df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"None",x)})
+
+#Quick Check for NA values.
+colSums(is.na(df3)) 
+
+```
+
+```{r}
+#Added Features for Analysis
+#Wanted to see if the scatterplots look different without the sq ft and log sq ft conversions (/100)
+
+#Should probably remove the individual columns from df once calcs are working
+df3$TotalSqFt <- (df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea)
+df3$TotalPorchSqFt <- (df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch)
+#df3$LotArea_100 <- df3$LotArea/100
+#df3$MasVnrArea_100 <- df3$MasVnrArea/100
+#df3$PoolArea_100 <- df3$PoolArea/100
+df3$TotalBaths <- df3$BsmtFullBath+(df3$BsmtHalfBath*0.5)+df3$FullBath+(df3$HalfBath*0.5)
+df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
+
+# Logged variables for regression
+df3$log_SalePrice <- as.numeric(ifelse(df3$split=="train",log(df3$SalePrice)," "))
+df3$log_TotalSqFt <- log(df3$TotalSqFt+1)
+df3$log_TotalPorchSqFt <- log(df3$TotalPorchSqFt+1)
+df3$log_HouseAge <- log(df3$HouseAge+1)
+df3$log_LotFrontage <- log(df3$LotFrontage+1)
+df3$log_LotArea <- log(df3$LotArea+1)
+df3$log_MasVnrArea <- log(df3$MasVnrArea+1)
+df3$log_PoolArea <- log(df3$PoolArea+1)
+
+```
+
+```{r}
+#Remove columns used to calculate Features above
+#Not sure we need to remove these just yet either.
+#Probably should be comfortable removing since they will most likely be correlatated with the calculated variables above.
+df3 <- subset(df3, select = -c(Id, GrLivArea, TotalBsmtSF, GarageArea, OpenPorchSF, EnclosedPorch, ScreenPorch, BsmtFullBath, BsmtHalfBath, FullBath, HalfBath, YrSold, YearBuilt))
+```
+
+```{r}
+#Turn all character columns to factors 
+df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.factor)
+#Another way of doing above
+#library(Dplyr)
+#df3 <- df %>% mutate_if(is.character,as.factor)
+```
+
+```{r}
+#Split df3 back to train and test df 
+split_df <- split(df3, df3$split)
+df_train <- split_df[[2]]
+df_test <- split_df[[1]]
+
+df_train
+df_test
+```
+
+```{r fig1, fig.height=10, fig.width=10}
+#Initial scatterplot matrix to determine if transformations are needed to create linear relationships 
+#Also to check for multi-collinelarity 
+#Should we include calculated columns to divide all SF metrics by 100?
+pairs(~SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
+        LotFrontage + LotArea + MasVnrArea + PoolArea, data=df_train, main="Untransformed Scatterplot")
+
+#Different Scatterplot view
+library(psych)
+pairs.panels(df_train[,c("SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAge","LotFrontage", 
+                         "LotArea", "MasVnrArea", "PoolArea")],
+             main="Untransformed",
+             method = "pearson",
+             density = TRUE)
+
+```
+
+```{r fig1, fig.height=10, fig.width=10}
+#Scatterplot matrix for log/linear relationship 
+pairs(~log_SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
+        LotFrontage + LotArea + MasVnrArea + PoolArea, data=df_train, main="Log/Linear Scatterplot")
+
+#Different Scatterplot view
+pairs.panels(df_train[,c("log_SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAge","LotFrontage", 
+                         "LotArea", "MasVnrArea", "PoolArea")],
+             main="Log/Linear",
+             method = "pearson",
+             density = TRUE)
+
+```
+
+```{r fig1, fig.height=10, fig.width=10}
+#Scatterplot matrix for log/log relationship 
+pairs(~log_SalePrice + log_TotalSqFt + log_TotalPorchSqFt + HouseAge + 
+        log_LotFrontage + log_LotArea + log_MasVnrArea + log_PoolArea, data=df_train, main="Log/Log Scatterplot")
+
+#Different Scatterplot view
+#Returns -inf NAN values when logging explanatory variables 
+pairs.panels(df_train[,c("log_SalePrice", "log_TotalSqFt", "log_TotalPorchSqFt","HouseAge","log_LotFrontage", 
+                         "log_LotArea", "log_MasVnrArea", "log_PoolArea")],
+             main="Log/Log",
+             method = "pearson",
+             density = TRUE)
+
+```
+
+```{r fig1, fig.height=10, fig.width=10}
+#Check for multi-collinelarity
+library(corrplot)
+#Return numeric values only
+df_train_numeric <- df_train[, sapply(df_train, is.numeric)]
+#df_train_numeric <- df_train_numeric[,-c(30:36)] #Remove log columns with NaN
+#Correlation Plot
+df_corr <- round(cor(df_train_numeric),2)
+corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title="Variable Corr Heatmap",tl.srt=60)
+
+#Possible multi-collinelarity (Keep TotalSqFt and TotRmsAbvGrd and toss the rest?)
+#TotalSqFt vs TotalBaths
+#TotalSqFt vs OverallQual
+#TotalSqFt vs X1stFlrSF
+#TotalSqFt vs GarageCars
+#TotalSqFt vs TotRmsAbvGrd
+#TotRmsAbvGrd vs X2ndFlrSF
+#TotRmsAbvGrd vs BedroomAbvGrd
+#TotRmsAbvGrd vs GarageYrBlt
+```
+
+```{r}
+library(Hmisc)
+#Correlation and P-value table
+flat_cor_mat <- function(cor_r, cor_p){
+  #This function provides a simple formatting of a correlation matrix
+  #into a table with 4 columns containing :
+  # Column 1 : row names (variable 1 for the correlation test)
+  # Column 2 : column names (variable 2 for the correlation test)
+  # Column 3 : the correlation coefficients
+  # Column 4 : the p-values of the correlations
+  library(tidyr)
+  library(tibble)
+  cor_r <- rownames_to_column(as.data.frame(cor_r), var = "row")
+  cor_r <- gather(cor_r, column, cor, -1)
+  cor_p <- rownames_to_column(as.data.frame(cor_p), var = "row")
+  cor_p <- gather(cor_p, column, p, -1)
+  cor_p_matrix <- left_join(cor_r, cor_p, by = c("row", "column"))
+  cor_p_matrix
+}
+cor_3 <- rcorr(as.matrix(df_train_numeric))
+my_cor_matrix <- flat_cor_mat(cor_3$r, cor_3$P)
+my_cor_matrix
+
+``` 
+
+```{r}
+library(randomForest)
+rf_model <- randomForest(SalePrice~., data=df_train, importance = TRUE)
+rf_model
+importance(rf_model)
+```
+
+```{r fig1, fig.height=10, fig.width=10}
+#Variable importance for placement order (Forward, Backward, Stepwise) 
+varImpPlot(rf_model,type=1, main='Random Tree Variable Importance')
+```
+
+
+
+
+
+
+```{r}
+Dataholes <- sapply(df3, function(x) sum(is.na(x)))
+FirstFocus <- data.frame(index = names(df3), BadData = Dataholes)
+FirstFocus[FirstFocus$BadData > 0,]
+
+```
+
+
+```{r MLRSection}
+
+
+
+```
+
+
+
+
+### Objective 2 - A Two way Anova
+
+
+```{r ANOVA}
+
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+
+#First lets just plot the GrLivArea by sale price to get an initial feel for the data
+ggplot(df3, aes(x=GrLivArea, y=SalePrice))+ geom_point()
+#We might want to ax those four houses that could be causing leverage as they're so far out there.  We will keep note going forward.
+
+
+```
+
+
