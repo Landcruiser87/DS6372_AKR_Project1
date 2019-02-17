@@ -100,6 +100,7 @@ This portion of the analysis, we decided to aggregate some of the variables in o
     * TotalSqFt to represent total indoor area of the house
     * TotalPorchSqFt to represent total porch space.
     * TotalBaths to represent the total bathroom count
+    * HouseAge to normalize Year variables
    
     
 
@@ -136,7 +137,9 @@ pairs.panels(df3[df3$split == "train",c("SalePrice", "TotalSqFt", "TotalPorchSqF
 
 ```
 
-While there does appear to be some correlation between the area and age related variables, the data doesn't seem to be normally distributed.  As such, we're going to try a log transformation to see if normality can be improved.
+While there does appear to be some correlation between the area and age-related variables, the data doesn't seem to be normally distributed nor does there seem to be a significant correlation between explanatory variables.  As such, we're going to try a log transformation on SalePrice to see if normality can be improved.
+
+We log-transformed all numeric variables shown in the scatterplot above in advance of our analysis to have them readily available should we need them. To reduce explanatory variables and avoid multi-collinearity issues, we removed the variables used to create the additional features (see "FeatureCreation" above).
 
 
 ``` {r VariableLogging}
@@ -221,7 +224,7 @@ corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title=
 #TotRmsAbvGrd vs GarageYrBlt
 ```
 
-To get a few other views on our dataset
+Several explanatory variables show multi-collinearity. These variables provide a list of numeric predictor variables that are moderately or highly correlated to each other, providing an opportunity to decrease redundancy that may skew MLR results.
 
 
 
