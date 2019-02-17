@@ -24,12 +24,14 @@ First off, we need to go through and do a little house cleaning with the data.  
 
 
 ```{r Dataload}
+
 #setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project1/Ames/house-prices-advanced-regression-techniques")
 train <- read.csv("../Datasets/train.csv", stringsAsFactors = FALSE)
 test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
 #As long as we all have the new folder structure, the following should work for all of us without having to change paths or manually moving files...
 #train <- read.csv("../Datasets/train.csv", stringsAsFactors = FALSE)
 #test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
+
 ```
 
 ```{r test_train_bind}
@@ -37,9 +39,11 @@ train$split <- "train" #Add column to delineate train
 test$split <- "test" #Add column to delineate test
 test$SalePrice <- NA #Dummy value for empty SalePrice
 df <- rbind(train, test) #Append train and test to make data cleanup easier
+
 #Subsets the data to a Sale Condition of "Normal"" and removal of commercial/severly damaged properties.
 #This was done to represent a typical homesale.
 df2 <- subset(df, SaleCondition=="Normal" | MSZoning !="C (all)" | Functional != "Sev")
+
 ```
 
 ```{r narm_1}
@@ -52,24 +56,35 @@ df3 <- df3[!is.na(df3$Electrical),]
 df3 <- df3[!is.na(df3$BsmtFullBath),]
 df3 <- df3[!is.na(df3$BsmtHalfBath),]
 df3 <- df3[!is.na(df3$SaleType),]
+
 #Check NA's by column
 colSums(is.na(df3)) 
+
 #Replace NA with 0 LotFrontage
 df3$LotFrontage[is.na(df3$LotFrontage)] <- 0
+
 #Replace NA with YearBuilt for GarageYrBlt 
 df3$GarageYrBlt <- ifelse(is.na(df3$GarageYrBlt) & !is.na(df3$GarageType), df3$YearBuilt, df3$GarageYrBlt)
+
+
 #Transform remaining NA values to "NA"
 #Replacing all numeric "NA" values with 0 #
 df3_num <- names(df3[,sapply(df3,function(x) {is.numeric(x)})])
 df3[,df3_num] <- sapply(df3[,df3_num],function(x){ ifelse(is.na(x),0,x)})
+
+
 #Replacing all character "NA" values with "None"
 df3_char <- names(df3[,sapply(df3,function(x){is.character(x)})])
 df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"None",x)})
+
 ```
 
 ```{r factor}
+
+
 #Turn all character columns to factors 
 df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.factor)
+
 ```
 
 ## Exploratory Data Analysis
@@ -87,6 +102,7 @@ df3$TotalSqFt <- (df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea)
 df3$TotalPorchSqFt <- (df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch)
 df3$TotalBaths <- df3$BsmtFullBath+(df3$BsmtHalfBath*0.5)+df3$FullBath+(df3$HalfBath*0.5)
 df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
+
 ```
 
 
@@ -94,10 +110,13 @@ Now we'll generate an inital scatterplot matrix to view the untransformed numeri
 
 
 ```{r Initial_Scatter_plots}
+
+
 #Also to check for multi-collinelarity 
 #Should we include calculated columns to divide all SF metrics by 100?
 pairs(~SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
         LotFrontage + LotArea + MasVnrArea + PoolArea, data=df3, main="Untransformed Scatterplot")
+
 #Different Scatterplot view of the training data.
 require(psych)
 library(psych)
@@ -106,12 +125,15 @@ pairs.panels(df3[df3$split == "train",c("SalePrice", "TotalSqFt", "TotalPorchSqF
              main="Untransformed",
              method = "pearson",
              density = TRUE)
+
+
 ```
 
 While there does appear to be some correlation between the area and age related variables, the data doesn't seem to be normally distributed.  As such, we're going to try a log transformation to see if normality can be improved.
 
 
 ``` {r VariableLogging}
+
 # Logged variables for regression
 df3$log_SalePrice <- as.numeric(ifelse(df3$split=="train",log(df3$SalePrice)," "))
 df3$log_TotalSqFt <- log(df3$TotalSqFt+1)
@@ -121,12 +143,17 @@ df3$log_LotFrontage <- log(df3$LotFrontage+1)
 df3$log_LotArea <- log(df3$LotArea+1)
 df3$log_MasVnrArea <- log(df3$MasVnrArea+1)
 df3$log_PoolArea <- log(df3$PoolArea+1)
+
 #Remove columns used to calculate Features below
+
 df3 <- subset(df3, select = -c(Id, GrLivArea, TotalBsmtSF, GarageArea, OpenPorchSF, EnclosedPorch, ScreenPorch, BsmtFullBath, BsmtHalfBath, FullBath, HalfBath, YrSold, YearBuilt))
+
 #Split df3 back to training set to use the logged Sale Price and begin considering our model.
 split_df <- split(df3, df3$split)
 df_train <- split_df[[2]]
 df_test <- split_df[[1]]
+
+
 ```
 
 
@@ -136,12 +163,14 @@ First we'll try a log-linear approach and only log the Sale price.
 #Scatterplot matrix for log/linear relationship 
 pairs(~log_SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
         LotFrontage + LotArea + MasVnrArea + PoolArea, data=df_train, main="Log/Linear Scatterplot")
+
 #Different Scatterplot view
 pairs.panels(df_train[,c("log_SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAge","LotFrontage", 
                          "LotArea", "MasVnrArea", "PoolArea")],
              main="Log/Linear",
              method = "pearson",
              density = TRUE)
+
 ```
 
 While we see an improvement in the Log_Sale Price distribution, some of the other features still aren't behaving, so we'll log them all now to see what we can find. 
@@ -150,6 +179,7 @@ While we see an improvement in the Log_Sale Price distribution, some of the othe
 #Scatterplot matrix for log/log relationship 
 pairs(~log_SalePrice + log_TotalSqFt + log_TotalPorchSqFt + HouseAge + 
         log_LotFrontage + log_LotArea + log_MasVnrArea + log_PoolArea, data=df_train, main="Log/Log Scatterplot")
+
 #Different Scatterplot view
 #Returns -inf NAN values when logging explanatory variables 
 pairs.panels(df_train[,c("log_SalePrice", "log_TotalSqFt", "log_TotalPorchSqFt","HouseAge","log_LotFrontage", 
@@ -157,6 +187,7 @@ pairs.panels(df_train[,c("log_SalePrice", "log_TotalSqFt", "log_TotalPorchSqFt",
              main="Log/Log",
              method = "pearson",
              density = TRUE)
+
 ```
 
 Now we see the log-log doesn't necessarily improve normality so we will probably stick with log-linear for a transformation for now.  Next lets load a heat map and look at the correlation matrix.
@@ -171,6 +202,7 @@ df_train_numeric <- df_train[, sapply(df_train, is.numeric)]
 #Correlation Plot
 df_corr <- round(cor(df_train_numeric),2)
 corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title="Variable Corr Heatmap",tl.srt=60)
+
 #Possible multi-collinelarity (Keep TotalSqFt and TotRmsAbvGrd and toss the rest?)
 #TotalSqFt vs TotalBaths <br/>
 #TotalSqFt vs OverallQual
@@ -215,12 +247,16 @@ set.seed(25) #Used this to sanity check the ASE results
 ```{r splitTrainingSet}
 trainingSet <- df3[df3$split == "train",] # Getting back just the records found in `training.csv`
 index<-sample(1:dim(trainingSet)[1], dim(trainingSet)[1] / 2, replace = F) #Used to divide the set into 2 sets
+
 columnsToDrop <- c("Utilities", "SaleCondition","log_TotalBaths","log_TotalSqFt_100","Id","split", "log_TotalSqFt","log_TotalPorchSqFt","log_HouseAge", "log_MasVnrArea","log_LotFrontage","log_PoolArea", "log_SalePrice","log_LotArea")
 trainingSet <- trainingSet[, !names(trainingSet) %in% columnsToDrop]
+
 par(mfrow=c(2,2))
 plot(lm(log(SalePrice)~.,trainingSet))
+
 mlrHousesTrain<-trainingSet[index,]
 mlrHousesTest<-trainingSet[-index,]
+
 #Size of each set
 dim(mlrHousesTrain)
 dim(mlrHousesTest)
@@ -230,8 +266,10 @@ Below you will see a few measures used to determine the effectiveness of the mod
 
 ```{r runningForwardSelection, echo=FALSE}
 library(leaps)
+
 #There are 239 variables as it splits categoricals into multiple variables. Setting that as the max. really.big must be true on sets with more than 50 variables
 reg.fwd=regsubsets(log(SalePrice)~., data = mlrHousesTrain, method = "forward", really.big=T, nvmax=239)
+
 #Getting total runs for the x-axis of the plots below by counting how many bic values are returned
 totalRuns <- length(summary(reg.fwd)$bic)
 par(mfrow=c(1,3))
@@ -239,10 +277,12 @@ bics<-summary(reg.fwd)$bic
 plot(1:totalRuns,bics,type="l",ylab="BIC",xlab="# of predictors")
 index<-which(bics==min(bics))
 points(index,bics[index],col="red",pch=10)
+
 adjr2<-summary(reg.fwd)$adjr2
 plot(1:totalRuns,adjr2,type="l",ylab="Adjusted R-squared",xlab="# of predictors")
 index<-which(adjr2==max(adjr2))
 points(index,adjr2[index],col="red",pch=10)
+
 rss<-summary(reg.fwd)$rss
 plot(1:totalRuns,rss,type="l",ylab="Train RSS",xlab="# of predictors")
 index<-which(rss==min(rss))
@@ -259,6 +299,7 @@ predict.regsubsets =function (object , newdata ,id ,...){
   xvars=names(coefi)
   mat[,xvars]%*%coefi
 }
+
 testASE<-c()
 for (i in 1:totalRuns){
   predictions<-predict.regsubsets(object=reg.fwd,newdata=mlrHousesTest,id=i) 
@@ -266,6 +307,7 @@ for (i in 1:totalRuns){
 }
 par(mfrow=c(1,1))
 plot(1:totalRuns,testASE,type="l",xlab="# of predictors",ylab="Test vs Train ASE",ylim=c(0,.5))
+
 lowestASEModelIndex<-which(testASE==min(testASE))
 # in case multiple models have the same ASE
 if (length(lowestASEModelIndex) > 1) {
@@ -273,6 +315,7 @@ if (length(lowestASEModelIndex) > 1) {
 }
 points(index,testASE[lowestASEModelIndex],col="red",pch=10)
 rss<-summary(reg.fwd)$rss
+
 testSampleSize <- dim(mlrHousesTest)[1]
 lines(1:totalRuns,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
 ```
@@ -332,9 +375,13 @@ We believe that we our final model is a good one that separates the wheat from t
 Whenever anyone is looking to buy a house, there's always one common metric that comes up.  Total Square feet, which is an added feature but something that always is associated with the buying of a house.  Due to most poeple out there all driving cars or need private maker shops of their own, The second categorical value we chose for a two way anova was GarageType.  We midwesterners are very concerned with our vehicles because if we want to get anywhere its going to take at least a 2 hour car ride to get there.
 
 ```{r ANOVA}
+
 library(ggplot2)
 library(dplyr)
+
+
 Clean.train <- subset(df3, split=="train")
+
 ggplot(Clean.train, aes(x = TotalSqFt, y = SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
@@ -342,6 +389,7 @@ ggplot(Clean.train, aes(x = TotalSqFt, y = SalePrice)) +
         ylab("Sale Price") +
         theme(text = element_text(size=9)) +
         ggtitle("Total Sq Foot") 
+
 ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
@@ -349,40 +397,58 @@ ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
         ylab("Sale Price") +
         theme(text = element_text(size=9)) +
         ggtitle("Garage Type") 
+
+
+
+
 ```
 # Now lets take a look at assumptions of the residuals in order to make sure we've satisfied all those before we can proceed with an Anova.
 
 
 ```{r Residual_Plotting}
+
+
 library(car)
 require(gridExtra)
 library(gridExtra)
 library(grid)
 library(ggplot2)
+
 ano.fit <-aov(SalePrice~Neighborhood+HouseStyle+Neighborhood:HouseStyle,data=Clean.train)
+
 table(Clean.Train$Neighborhood,Clean.train$HouseStyle)
 # go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
+
 #reduce it to a set of 
+
 Anova(ano.fit,type=3)
+
 ano.fit <-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Clean.train)
 #Anova(ano.fit,type=3)
+
 with(Clean.train, table(Neighborhood, GarageType))
 ```
 
 ```{r}
 please.fit<-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Clean.train)
+
 plsfit<-data.frame(fitted.values=please.fit$fitted.values,residuals=please.fit$residuals)
+
 #Residual vs Fitted
 plot1<-ggplot(plsfit,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
   xlab("Predicted")+geom_point()
+
 #QQ plot of residuals  #Note the diagonal abline is only good for qqplots of normal data.
 plot2<-ggplot(plsfit,aes(sample=residuals))+
   stat_qq()+geom_abline(intercept=mean(plsfit$residuals), slope = sd(plsfit$residuals))
+
 #Histogram of residuals
 plot3<-ggplot(plsfit, aes(x=residuals)) + 
   geom_histogram(aes(y=..density..),binwidth=10,color="black", fill="gray")+
   geom_density(alpha=.1, fill="red")
+
 grid.arrange(plot1, plot2,plot3, ncol=3)
+
 ```
 
 
