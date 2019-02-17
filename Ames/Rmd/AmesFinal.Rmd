@@ -386,29 +386,70 @@ Whenever anyone is looking to buy a house, there's always one common metric that
 library(ggplot2)
 library(dplyr)
 
-
 Clean.train <- subset(df3, split=="train")
 
-ggplot(Clean.train, aes(x = TotalSqFt, y = SalePrice)) +
-        geom_point(shape=1) + 
-        geom_smooth(method=lm, se=FALSE) +   
-        xlab("Total Square Footage") +
-        ylab("Sale Price") +
-        theme(text = element_text(size=9)) +
-        ggtitle("Total Sq Foot") 
+mysummary<-function(x){
+  result<-c(length(x),min(x),max(x),IQR(x),mean(x),sd(x),sd(x)/sqrt(length(x)))
+  names(result)<-c("N","Min","Max","IQR","Mean","SD","SE")
+  return(result)
+}
 
-ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
-        geom_point(shape=1) + 
-        geom_smooth(method=lm, se=FALSE) +   
-        xlab("Garage Type") +
-        ylab("Sale Price") +
-        theme(text = element_text(size=9)) +
-        ggtitle("Garage Type") 
+sumstats<-aggregate(SalePrice~HeatingQC*CentralAir,data=Clean.train,mysummary)
+sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
+sumstats
 
 
+ggplot(sumstats,aes(x=HeatingQC,y=Mean,group=CentralAir,colour=CentralAir))+
+  ylab("Sale Price")+
+  geom_line()+
+  geom_point()+
+  geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
 
+#GarageType & GarageFinish
+
+with(Clean.train, table(HeatingQC, CentralAir))
+
+
+# 
+# Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
+# Clean.train <- subset(Clean.train, HeatingQC != "Po")
+Clean.train <- 
+
+head(Clean.train)
+
+levels(Clean.train$HeatingQC)
+
+
+
+#Might be a way to do it.  Sort neighborhoods by a particular parameter.  Analyze the top ones.  
+
+# go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
+
+#reduce it to a set of categoricals that you can work with.  IE.  look through neighborhoods and kick out the bad ones. if you wanna do neighborhood
 
 ```
+
+```{r}
+with(Clean.train, table(Neighborhood, MSZoning))
+
+ggplot(Clean.train, aes(x = HeatingQC, y = SalePrice)) +
+        geom_point(shape=1) + 
+        geom_smooth(method=lm, se=FALSE) +   
+        xlab("Neighborhood") +
+        ylab("Sale Price") +
+        theme(text = element_text(size=9)) +
+        ggtitle("SalePrice by Neighborhood") 
+
+ggplot(Clean.train, aes(x = CentralAir, y = SalePrice)) +
+        geom_point(shape=1) + 
+        geom_smooth(method=lm, se=FALSE) +   
+        xlab("Building Type") +
+        ylab("Sale Price") +
+        theme(text = element_text(size=9)) +
+        ggtitle("Sale Price by Building Type") 
+
+```
+
 # Now lets take a look at assumptions of the residuals in order to make sure we've satisfied all those before we can proceed with an Anova.
 
 
