@@ -418,7 +418,7 @@ grid.arrange(plot1, plot2,plot3, ncol=3)
 
 
   * Normality - Histogram and QQ Plots
-    *The Histogram and QQ plot show some curvature in Q1 and Q3 sections.  A log transform could help straighten that out. 
+    * The Histogram and QQ plot show some curvature in Q1 and Q3 sections.  A log transform could help straighten that out. 
   * Constant Variance - Residuals plot
   * Independence of variables - We have independence of variables
   * Check for outliers.
