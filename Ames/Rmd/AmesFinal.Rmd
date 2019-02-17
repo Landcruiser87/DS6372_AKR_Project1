@@ -234,6 +234,8 @@ varImpPlot(rf_model,type=1, main='Random Tree Variable Importance')
 
 
 ## Objective 1 - Multiple Linear Regression
+**NOTE:** Due to slight differences in dataset manipulation when we divied out the tasks and when we put together the parts, the analysis below will not match the results of the code. We still believe that the model we have produced due to the analysis is still a good one across seeds/minor dataset variations.
+
 We will use forward selection to determine the most effective explanatory variables that can be used to predict the sale price of homes in Ames, Iowa. First we will split the `training.csv` given in the Kaggle data set into another training and test set to determine the effectiveness of our models as the `test.csv` in the Kaggle set does not provide sale prices. We will also be dropping factors. Some with only one level, logged variables that we decided above not to use, and Id as it is a known arbitrary field.
 
 A quick check of the assumptions by plotting the full model yields some mixed results. There are some outliers according to the Residuals vs Fitted and Cook's D plots. We believe the analysis can continue with them as they are legitimate houses with high prices. The residuals are relatively normal shaped according to the QQ plot and the samples are assumed to be independent.
@@ -358,13 +360,14 @@ hybridModelPredictions <- predict(hybridModel, newdata=mlrHousesTest2, interval=
 hybridModelTestASE <- mean((log(mlrHousesTest2$SalePrice) - hybridModelPredictions[,1])^2) #Selecting the fit column of predictions
 hybridModelTestASE
 ```
-This is better than the ASE from the forward model selection and significantly reduces the number of variables in the fit, thereby reducing the risk overfitting. Below are the first five predictions along with the confidence intervals. Since we logged the sale prices, we transform them back to meaningful numbers by raising them as a power of e. Looking at the first prediction we see a prediction of $191,241 with a 95% confidence interval of $184,810 and $197,896.
+This is better than the ASE from the forward model selection and significantly reduces the number of variables in the fit, thereby reducing the risk overfitting. Below are the first five predictions along with the confidence intervals. Since we logged the sale prices, we transform them back to meaningful numbers by raising them as a power of e. Looking at the first prediction we see a prediction of $190,506 with a 95% confidence interval of $183,174 and $198,131.
 
 ```{r predictionsWithConfidenceIntervals}
 head(exp(hybridModelPredictions))
 ```
 
 ### Conclusion
+We believe that we our final model is a good one that separates the wheat from the chaff with regard to relevant factors. As far as new insights, we have learned about the simplicity of feature selection. Non-significant factors are not pruned on the way to the most accurate model. Manual pruning needs to be done after the feature selection has completed to reduce needless complexity. Finally, next time we would like to have a simpler dataset so that small changes in how we put together the test and training sets will not throw off analysis that has already been done as can be seen in the differences between the paragraphs and code output above. 
 
 ### Objective 2 - A Two way Anova
 
@@ -454,9 +457,6 @@ grid.arrange(plot1, plot2,plot3, ncol=3)
   * Constant Variance - Residuals plot
   * Independence of variables - We have independence of variables
   * Check for outliers.
-  
-
-## Conclusion
 
   
 ## Appendix
