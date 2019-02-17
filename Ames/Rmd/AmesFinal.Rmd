@@ -1,0 +1,430 @@
+---
+title: "AmesHousing"
+author: "Andy Heroy, Kito Patterson, Ryan Quincy Paul"
+date: "February 13, 2019"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction:
+
+For our project, We will estimate how the sale prices of homes in Ames Iowa are affected by various real estate attributes. First, we will utilize multiple linear regression to predict the sale price on many explanatory variables. Then a Two-way ANOVA will be ran on Sale Price and two categorical variables to analyze group variability.
+
+
+## Data Description:
+
+As stated above, we will use the Ames housing training dataset for our analysis.  This dataset was created by Dean De Cock as a modern alternative to the oudated Boston housing dataset (detail can be found [here at the Kaggle website](https://www.kaggle.com/c/house-prices-advanced-regression-techniques)). The dataset contains 1460 observations and 79 explanatory variables. For our analysis we will be using some of those 79 for analysis as well as a few of our own created features in the prediction.
+
+## Data Preparation
+
+First off, we need to go through and do a little house cleaning with the data.  The following chunks will take you through that initial process of getting the data clean and presentable for future analysis.  
+
+
+```{r Dataload}
+
+#setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project1/Ames/house-prices-advanced-regression-techniques")
+train <- read.csv("train.csv", stringsAsFactors = FALSE)
+test <- read.csv("test.csv", stringsAsFactors = FALSE)
+#As long as we all have the new folder structure, the following should work for all of us without having to change paths or manually moving files...
+#train <- read.csv("../Datasets/train.csv", stringsAsFactors = FALSE)
+#test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
+
+```
+
+```{r test_train_bind}
+train$split <- "train" #Add column to delineate train
+test$split <- "test" #Add column to delineate test
+test$SalePrice <- NA #Dummy value for empty SalePrice
+df <- rbind(train, test) #Append train and test to make data cleanup easier
+
+#Subsets the data to a Sale Condition of "Normal"" and removal of commercial/severly damaged properties.
+#This was done to represent a typical homesale.
+df2 <- subset(df, SaleCondition=="Normal" & MSZoning !="C (all)" & Functional != "Sev")
+
+```
+
+```{r narm_1}
+#Remove rows with NA values per column
+df3 <- df2[!is.na(df2$Utilities),]
+df3 <- df3[!is.na(df3$Exterior1st),]
+df3 <- df3[!is.na(df3$Exterior2nd),]
+df3 <- df3[!is.na(df3$MasVnrType),] #Removes same rows for MsVnrArea
+df3 <- df3[!is.na(df3$Electrical),]
+df3 <- df3[!is.na(df3$BsmtFullBath),]
+df3 <- df3[!is.na(df3$BsmtHalfBath),]
+df3 <- df3[!is.na(df3$SaleType),]
+
+#Check NA's by column
+colSums(is.na(df3)) 
+
+#Replace NA with 0 LotFrontage
+df3$LotFrontage[is.na(df3$LotFrontage)] <- 0
+
+#Replace NA with YearBuilt for GarageYrBlt 
+df3$GarageYrBlt <- ifelse(is.na(df3$GarageYrBlt) & !is.na(df3$GarageType), df3$YearBuilt, df3$GarageYrBlt)
+
+
+#Transform remaining NA values to "NA"
+#Replacing all numeric "NA" values with 0 #
+df3_num <- names(df3[,sapply(df3,function(x) {is.numeric(x)})])
+df3[,df3_num] <- sapply(df3[,df3_num],function(x){ ifelse(is.na(x),0,x)})
+
+
+#Replacing all character "NA" values with "None"
+df3_char <- names(df3[,sapply(df3,function(x){is.character(x)})])
+df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"None",x)})
+
+```
+
+```{r factor}
+
+
+#Turn all character columns to factors 
+df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.factor)
+
+```
+
+## Exploratory Data Analysis
+
+This portion of the analysis, we decided to aggregate some of the variables in order to better represent some of the housing attributes we thought should be examined.  We chose
+    * TotalSqFt to represent total indoor area of the house
+    * TotalPorchSqFt to represent total porch space.
+    * TotalBaths to represent the total bathroom count
+   
+    
+
+```{r FeatureAddition}
+#Added Features for Analysis
+df3$TotalSqFt <- (df3$GrLivArea + df3$TotalBsmtSF + df3$GarageArea)
+df3$TotalPorchSqFt <- (df3$OpenPorchSF+df3$EnclosedPorch+df3$ScreenPorch)
+df3$TotalBaths <- df3$BsmtFullBath+(df3$BsmtHalfBath*0.5)+df3$FullBath+(df3$HalfBath*0.5)
+df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
+
+```
+
+
+Now we'll generate an inital scatterplot matrix to view the untransformed numerical data and see if we find any correlation.  We picked these variables in order to look at our feature creation and seeing how square footage, in all its forms, plays into the Sale Price.
+
+
+```{r Initial_Scatter_plots}
+
+
+#Also to check for multi-collinelarity 
+#Should we include calculated columns to divide all SF metrics by 100?
+pairs(~SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
+        LotFrontage + LotArea + MasVnrArea + PoolArea, data=df3, main="Untransformed Scatterplot")
+
+#Different Scatterplot view of the training data.
+require(psych)
+library(psych)
+pairs.panels(df3[df3$split == "train",c("SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAge","LotFrontage", 
+                         "LotArea", "MasVnrArea", "PoolArea")],
+             main="Untransformed",
+             method = "pearson",
+             density = TRUE)
+
+
+```
+
+While there does appear to be some correlation between the area and age related variables, the data doesn't seem to be normally distributed.  As such, we're going to try a log transformation to see if normality can be improved.
+
+
+``` {r VariableLogging}
+
+# Logged variables for regression
+df3$log_SalePrice <- as.numeric(ifelse(df3$split=="train",log(df3$SalePrice)," "))
+df3$log_TotalSqFt <- log(df3$TotalSqFt+1)
+df3$log_TotalPorchSqFt <- log(df3$TotalPorchSqFt+1)
+df3$log_HouseAge <- log(df3$HouseAge+1)
+df3$log_LotFrontage <- log(df3$LotFrontage+1)
+df3$log_LotArea <- log(df3$LotArea+1)
+df3$log_MasVnrArea <- log(df3$MasVnrArea+1)
+df3$log_PoolArea <- log(df3$PoolArea+1)
+
+#Remove columns used to calculate Features below
+
+df3 <- subset(df3, select = -c(Id, GrLivArea, TotalBsmtSF, GarageArea, OpenPorchSF, EnclosedPorch, ScreenPorch, BsmtFullBath, BsmtHalfBath, FullBath, HalfBath, YrSold, YearBuilt))
+
+#Split df3 back to training set to use the logged Sale Price and begin considering our model.
+split_df <- split(df3, df3$split)
+df_train <- split_df[[2]]
+df_test <- split_df[[1]]
+
+
+```
+
+
+First we'll try a log-linear approach and only log the Sale price. 
+
+```{r Log_Linear_SP, fig.height=10, fig.width=10}
+#Scatterplot matrix for log/linear relationship 
+pairs(~log_SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
+        LotFrontage + LotArea + MasVnrArea + PoolArea, data=df_train, main="Log/Linear Scatterplot")
+
+#Different Scatterplot view
+pairs.panels(df_train[,c("log_SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAge","LotFrontage", 
+                         "LotArea", "MasVnrArea", "PoolArea")],
+             main="Log/Linear",
+             method = "pearson",
+             density = TRUE)
+
+```
+
+While we see an improvement in the Log_Sale Price distribution, some of the other features still aren't behaving, so we'll log them all now to see what we can find. 
+
+```{r Log_log, fig.height=10, fig.width=10}
+#Scatterplot matrix for log/log relationship 
+pairs(~log_SalePrice + log_TotalSqFt + log_TotalPorchSqFt + HouseAge + 
+        log_LotFrontage + log_LotArea + log_MasVnrArea + log_PoolArea, data=df_train, main="Log/Log Scatterplot")
+
+#Different Scatterplot view
+#Returns -inf NAN values when logging explanatory variables 
+pairs.panels(df_train[,c("log_SalePrice", "log_TotalSqFt", "log_TotalPorchSqFt","HouseAge","log_LotFrontage", 
+                         "log_LotArea", "log_MasVnrArea", "log_PoolArea")],
+             main="Log/Log",
+             method = "pearson",
+             density = TRUE)
+
+```
+
+Now we see the log-log doesn't necessarily improve normality so we will probably stick with log-linear for a transformation for now.  Next lets load a heat map and look at the correlation matrix.
+
+
+```{r corHeatMap, fig.height=10, fig.width=10}
+#Check for multi-collinelarity
+library(corrplot)
+#Return numeric values only
+df_train_numeric <- df_train[, sapply(df_train, is.numeric)]
+#df_train_numeric <- df_train_numeric[,-c(30:36)] #Remove log columns with NaN
+#Correlation Plot
+df_corr <- round(cor(df_train_numeric),2)
+corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title="Variable Corr Heatmap",tl.srt=60)
+
+#Possible multi-collinelarity (Keep TotalSqFt and TotRmsAbvGrd and toss the rest?)
+#TotalSqFt vs TotalBaths <br/>
+#TotalSqFt vs OverallQual
+#TotalSqFt vs X1stFlrSF
+#TotalSqFt vs GarageCars
+#TotalSqFt vs TotRmsAbvGrd
+#TotRmsAbvGrd vs X2ndFlrSF
+#TotRmsAbvGrd vs BedroomAbvGrd
+#TotRmsAbvGrd vs GarageYrBlt
+```
+
+To get a few other views on our dataset
+
+
+
+## Model Selection
+
+
+Now that we've explored a bit more of the data, we're going to look at some other modes of selection to also give us an idea of the order of importance.  
+
+```{r fig1, fig.height=10, fig.width=10}
+library(randomForest)
+rf_model <- randomForest(SalePrice~., data=df_train, importance = TRUE)
+importance(rf_model)
+#Variable importance for placement order (Forward, Backward, Stepwise) 
+varImpPlot(rf_model,type=1, main='Random Tree Variable Importance')
+```
+
+
+
+```{r}
+set.seed(1234) #not sure what protocol is for set.seed, we did this so our homeworks would match, but we probably want this to be actually random?
+
+
+# Getting back just the training set from massaged data
+trainingSet <- df3[df3$split == "train",]
+
+#there are 1193 observations. Divide in half
+index<-sample(1:dim(trainingSet)[1], dim(trainingSet)[1] / 2, replace = F)
+
+# Dropping Utilities and SaleCondition (we filtered for only Normal) because they only have 1 level
+# Also dropping non logged counterparts of numeric variables (described above), ID (arbitrary), and the Split variable used above to differentiate between Train and Test sets that is no longer needed.
+#Also dropping the logged sale price as we will just do that in the model we declare below.
+columnsToDrop <- c("Utilities", "SaleCondition","log_TotalBaths","log_TotalSqFt_100","Id","split", "log_TotalSqFt","log_TotalPorchSqFt","log_HouseAge", "log_MasVnrArea","log_LotFrontage","log_PoolArea", "log_SalePrice","log_LotArea")
+trainingSet <- trainingSet[, !names(trainingSet) %in% columnsToDrop]
+
+#removing for high colinearity
+#highVifColumns <- c("MSSubClass","LotArea","OverallQual","YearRemodAdd","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF","X1stFlrSF","X2ndFlrSF","KitchenAbvGr","TotRmsAbvGrd","Fireplaces","GarageCars","PoolArea","MiscVal","HouseAge","GarageYrBlt","Exterior1st","Exterior2nd","Condition1","Condition2","ExterQual","ExterCond")
+
+#trainingSet <- trainingSet[, !names(trainingSet) %in% c(columnsToDrop,highVifColumns)]
+
+
+#columnsToInclude <- c("LotArea","MasVnrArea","BsmtFinSF1","Fireplaces","X1stFlrSF","log_TotalSqFt_100","WoodDeckSF","YearRemodAdd","TotalBaths","OverallQual","GarageCars","SalePrice")
+#trainingSet <- trainingSet[, names(trainingSet) %in% columnsToInclude]
+
+#splitting into train and test, since the test we are given doesn't have the actual values
+mlrHousesTrain<-trainingSet[index,]
+mlrHousesTest<-trainingSet[-index,]
+
+library(leaps)
+
+#There are 239 variables, it splits categoricals into multiple variables. Setting that as the max
+reg.fwd=regsubsets(log(SalePrice)~., data = mlrHousesTrain, method = "forward", really.big=T, nvmax=239)
+
+#summary(reg.fwd)$adjr2
+#summary(reg.fwd)$rss
+#summary(reg.fwd)$bic
+
+#Getting total runs by counting how many bic values
+totalRuns <- length(summary(reg.fwd)$bic)
+par(mfrow=c(1,3))
+bics<-summary(reg.fwd)$bic
+plot(1:totalRuns,bics,type="l",ylab="BIC",xlab="# of predictors")
+index<-which(bics==min(bics))
+points(index,bics[index],col="red",pch=10)
+
+adjr2<-summary(reg.fwd)$adjr2
+plot(1:totalRuns,adjr2,type="l",ylab="Adjusted R-squared",xlab="# of predictors")
+index<-which(adjr2==max(adjr2))
+points(index,adjr2[index],col="red",pch=10)
+
+rss<-summary(reg.fwd)$rss
+plot(1:totalRuns,rss,type="l",ylab="train RSS",xlab="# of predictors")
+index<-which(rss==min(rss))
+points(index,rss[index],col="red",pch=10)
+
+predict.regsubsets =function (object , newdata ,id ,...){
+  form=as.formula (object$call [[2]])
+  mat=model.matrix(form ,newdata )
+  coefi=coef(object ,id=id)
+  xvars=names(coefi)
+  mat[,xvars]%*%coefi
+}
+
+testASE<-c()
+#note my index is to 20 since that what I set it in regsubsets
+for (i in 1:totalRuns){
+  predictions<-predict.regsubsets(object=reg.fwd,newdata=mlrHousesTest,id=i) 
+  testASE[i]<-mean((log(mlrHousesTest$SalePrice)-predictions)^2)
+}
+par(mfrow=c(1,1))
+plot(1:totalRuns,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE",ylim=c(0,1))
+
+lowestASEModelIndex<-which(testASE==min(testASE))
+# in case multiple models have the same ASE
+if (length(lowestASEModelIndex) > 1) {
+  lowestASEModelIndex = lowestASEModelIndex[1]
+}
+points(index,testASE[lowestASEModelIndex],col="red",pch=10)
+rss<-summary(reg.fwd)$rss
+
+testSampleSize <- dim(mlrHousesTest)[1]
+lines(1:totalRuns,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
+
+names(coef(reg.fwd,lowestASEModelIndex))
+
+
+final.model<-lm(log(SalePrice)~TotalSqFt+Neighborhood+LotArea+OverallQual+HouseAge+YearRemodAdd+GarageType,data=mlrHousesTrain)
+summary(final.model)
+
+# Confidence Intervals
+ConfIntervals <- predict(final.model,mlrHousesTrain,interval="confidence")
+ConfIntervals <- exp(ConfIntervals[,1:3])
+
+par(mfrow=c(2,2))
+plot(final.model)
+
+
+
+```
+
+### Objective 2 - A Two way Anova
+
+
+Whenever anyone is looking to buy a house, there's always one common metric that comes up.  Total Square feet, which is an added feature but something that always is associated with the buying of a house.  Due to most poeple out there all driving cars or need private maker shops of their own, The second categorical value we chose for a two way anova was GarageType.  We midwesterners are very concerned with our vehicles because if we want to get anywhere its going to take at least a 2 hour car ride to get there.
+
+```{r ANOVA}
+
+library(ggplot2)
+library(dplyr)
+
+
+Clean.train <- subset(df3, split=="train")
+
+ggplot(Clean.train, aes(x = TotalSqFt, y = SalePrice)) +
+        geom_point(shape=1) + 
+        geom_smooth(method=lm, se=FALSE) +   
+        xlab("Total Square Footage") +
+        ylab("Sale Price") +
+        theme(text = element_text(size=9)) +
+        ggtitle("Total Sq Foot") 
+
+ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
+        geom_point(shape=1) + 
+        geom_smooth(method=lm, se=FALSE) +   
+        xlab("Garage Type") +
+        ylab("Sale Price") +
+        theme(text = element_text(size=9)) +
+        ggtitle("Garage Type") 
+
+
+
+
+```
+
+# Now lets take a look at assumptions of the residuals in order to make sure we've satisfied all those before we can proceed with an Anova.
+
+```{r Resid_Chart_Function}
+#Code referenced from https://rpubs.com/therimalaya/43190.  
+
+  diagPlot<-function(model){
+    p1<-ggplot(model, aes(.fitted, .resid))+geom_point()
+    p1<-p1+stat_smooth(method="loess")+geom_hline(yintercept=0, col="red", linetype="dashed")
+    p1<-p1+xlab("Fitted values")+ylab("Residuals")
+    p1<-p1+ggtitle("Residual vs Fitted Plot")+theme_bw()
+    
+    p2<-ggplot(model, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)
+    p2<-p2+geom_abline(aes(qqline(.stdresid)))+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")
+    p2<-p2+ggtitle("Normal Q-Q")+theme_bw()
+    
+    p3<-ggplot(model, aes(.fitted, sqrt(abs(.stdresid))))+geom_point(na.rm=TRUE)
+    p3<-p3+stat_smooth(method="loess", na.rm = TRUE)+xlab("Fitted Value")
+    p3<-p3+ylab(expression(sqrt("|Standardized residuals|")))
+    p3<-p3+ggtitle("Scale-Location")+theme_bw()
+    
+    p4<-ggplot(model, aes(seq_along(.cooksd), .cooksd))+geom_bar(stat="identity", position="identity")
+    p4<-p4+xlab("Obs. Number")+ylab("Cook's distance")
+    p4<-p4+ggtitle("Cook's distance")+theme_bw()
+    
+    p5<-ggplot(model, aes(.hat, .stdresid))+geom_point(aes(size=.cooksd), na.rm=TRUE)
+    p5<-p5+stat_smooth(method="loess", na.rm=TRUE)
+    p5<-p5+xlab("Leverage")+ylab("Standardized Residuals")
+    p5<-p5+ggtitle("Residual vs Leverage Plot")
+    p5<-p5+scale_size_continuous("Cook's Distance", range=c(1,5))
+    p5<-p5+theme_bw()+theme(legend.position="bottom")
+    
+    p6<-ggplot(model, aes(.hat, .cooksd))+geom_point(na.rm=TRUE)+stat_smooth(method="loess", na.rm=TRUE)
+    p6<-p6+xlab("Leverage hii")+ylab("Cook's Distance")
+    p6<-p6+ggtitle("Cook's dist vs Leverage hii/(1-hii)")
+    p6<-p6+geom_abline(slope=seq(0,3,0.5), color="gray", linetype="dashed")
+    p6<-p6+theme_bw()
+    
+    return(list(rvfPlot=p1, qqPlot=p2, sclLocPlot=p3, cdPlot=p4, rvlevPlot=p5, cvlPlot=p6))
+  }
+
+```
+
+```{r Residual_Plotting}
+
+
+library(car)
+require(gridExtra)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+
+ano.fit <-aov(SalePrice~Neighborhood+HouseStyle+Neighborhood:HouseStyle,data=Clean.train)
+
+Anova(ano.fit,type=3)
+
+
+
+
+
+```
