@@ -379,10 +379,8 @@ We believe that we our final model is a good one that separates the wheat from t
 ### Objective 2 - A Two way Anova
 
 
-Whenever anyone is looking to buy a house, there's always one common metric that comes up.  Total Square feet, which is an added feature but something that always is associated with the buying of a house.  Due to most poeple out there all driving cars or need private maker shops of their own, The second categorical value we chose for a two way anova was GarageType.  We midwesterners are very concerned with our vehicles because if we want to get anywhere its going to take at least a 2 hour car ride to get there.
 
-
-With looking at various categoricals to pick from, trying to find an even blend of saturation across the group means is our goal.  After experimenting with many.  many. combinations of the 79 categorical variables.  We rested on 
+Next we will take our analysis a little further by examing a Two-way anova over two categorical variables as they relate to the Sale Price of a home.  With looking at various categoricals to pick from, trying to find an even blend of saturation across the group means is our goal.  Our investigation led us to HeatingQC and CentralAir.  If you've ever been to Iowa, the summers there can be blisteringly hot, while the winters can be extremely cold.  As such, We hypothesize that both will play a vital role in the value of a Sale as comfort is more of a necessity in such a wide ranging climate. 
 
 ```{r ANOVA}
 
