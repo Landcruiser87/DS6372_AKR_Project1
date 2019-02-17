@@ -42,7 +42,7 @@ df <- rbind(train, test) #Append train and test to make data cleanup easier
 
 #Subsets the data to a Sale Condition of "Normal"" and removal of commercial/severly damaged properties.
 #This was done to represent a typical homesale.
-df2 <- subset(df, SaleCondition=="Normal" & MSZoning !="C (all)" & Functional != "Sev")
+df2 <- subset(df, SaleCondition=="Normal" | MSZoning !="C (all)" | Functional != "Sev")
 
 ```
 
