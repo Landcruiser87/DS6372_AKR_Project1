@@ -367,48 +367,8 @@ ggplot(Clean.train, aes(x = GarageType, y = SalePrice)) +
 
 
 ```
-
 # Now lets take a look at assumptions of the residuals in order to make sure we've satisfied all those before we can proceed with an Anova.
 
-```{r Resid_Chart_Function}
-#Code referenced from https://rpubs.com/therimalaya/43190.  
-
-  diagPlot<-function(model){
-    p1<-ggplot(model, aes(.fitted, .resid))+geom_point()
-    p1<-p1+stat_smooth(method="loess")+geom_hline(yintercept=0, col="red", linetype="dashed")
-    p1<-p1+xlab("Fitted values")+ylab("Residuals")
-    p1<-p1+ggtitle("Residual vs Fitted Plot")+theme_bw()
-    
-    p2<-ggplot(model, aes(qqnorm(.stdresid)[[1]], .stdresid))+geom_point(na.rm = TRUE)
-    p2<-p2+geom_abline(aes(qqline(.stdresid)))+xlab("Theoretical Quantiles")+ylab("Standardized Residuals")
-    p2<-p2+ggtitle("Normal Q-Q")+theme_bw()
-    
-    p3<-ggplot(model, aes(.fitted, sqrt(abs(.stdresid))))+geom_point(na.rm=TRUE)
-    p3<-p3+stat_smooth(method="loess", na.rm = TRUE)+xlab("Fitted Value")
-    p3<-p3+ylab(expression(sqrt("|Standardized residuals|")))
-    p3<-p3+ggtitle("Scale-Location")+theme_bw()
-    
-    p4<-ggplot(model, aes(seq_along(.cooksd), .cooksd))+geom_bar(stat="identity", position="identity")
-    p4<-p4+xlab("Obs. Number")+ylab("Cook's distance")
-    p4<-p4+ggtitle("Cook's distance")+theme_bw()
-    
-    p5<-ggplot(model, aes(.hat, .stdresid))+geom_point(aes(size=.cooksd), na.rm=TRUE)
-    p5<-p5+stat_smooth(method="loess", na.rm=TRUE)
-    p5<-p5+xlab("Leverage")+ylab("Standardized Residuals")
-    p5<-p5+ggtitle("Residual vs Leverage Plot")
-    p5<-p5+scale_size_continuous("Cook's Distance", range=c(1,5))
-    p5<-p5+theme_bw()+theme(legend.position="bottom")
-    
-    p6<-ggplot(model, aes(.hat, .cooksd))+geom_point(na.rm=TRUE)+stat_smooth(method="loess", na.rm=TRUE)
-    p6<-p6+xlab("Leverage hii")+ylab("Cook's Distance")
-    p6<-p6+ggtitle("Cook's dist vs Leverage hii/(1-hii)")
-    p6<-p6+geom_abline(slope=seq(0,3,0.5), color="gray", linetype="dashed")
-    p6<-p6+theme_bw()
-    
-    return(list(rvfPlot=p1, qqPlot=p2, sclLocPlot=p3, cdPlot=p4, rvlevPlot=p5, cvlPlot=p6))
-  }
-
-```
 
 ```{r Residual_Plotting}
 
@@ -421,10 +381,44 @@ library(ggplot2)
 
 ano.fit <-aov(SalePrice~Neighborhood+HouseStyle+Neighborhood:HouseStyle,data=Clean.train)
 
+table(Clean.Train$Neighborhood,Clean.train$HouseStyle)
+# go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
+
+#reduce it to a set of 
+
 Anova(ano.fit,type=3)
 
+ano.fit <-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Clean.train)
+#Anova(ano.fit,type=3)
 
+with(Clean.train, table(Neighborhood, GarageType))
+```
 
+```{r}
+please.fit<-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Clean.train)
 
+plsfit<-data.frame(fitted.values=please.fit$fitted.values,residuals=please.fit$residuals)
+
+#Residual vs Fitted
+plot1<-ggplot(plsfit,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
+  xlab("Predicted")+geom_point()
+
+#QQ plot of residuals  #Note the diagonal abline is only good for qqplots of normal data.
+plot2<-ggplot(plsfit,aes(sample=residuals))+
+  stat_qq()+geom_abline(intercept=mean(plsfit$residuals), slope = sd(plsfit$residuals))
+
+#Histogram of residuals
+plot3<-ggplot(plsfit, aes(x=residuals)) + 
+  geom_histogram(aes(y=..density..),binwidth=10,color="black", fill="gray")+
+  geom_density(alpha=.1, fill="red")
+
+grid.arrange(plot1, plot2,plot3, ncol=3)
 
 ```
+
+
+  * Normality - Histogram and QQ Plots
+    *The Histogram and QQ plot show some curvature in Q1 and Q3 sections.  A log transform could help straighten that out. 
+  * Constant Variance - Residuals plot
+  * Independence of variables - We have independence of variables
+  * Check for outliers.
