@@ -402,55 +402,38 @@ sumstats<-aggregate(SalePrice~HeatingQC*CentralAir,data=Clean.train,mysummary)
 sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
 sumstats
 
-
 ggplot(sumstats,aes(x=HeatingQC,y=Mean,group=CentralAir,colour=CentralAir))+
   ylab("Sale Price")+
   geom_line()+
   geom_point()+
   geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
 
+#Just looking at basic means plot we see that the Central Air = Yes category doesn't have a poor rating in any of its heatingQC
 #GarageType & GarageFinish
 
 with(Clean.train, table(HeatingQC, CentralAir))
-
-
-# 
-# Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
-# Clean.train <- subset(Clean.train, HeatingQC != "Po")
-Clean.train <- 
-
-head(Clean.train)
-
-levels(Clean.train$HeatingQC)
-
-
-
-#Might be a way to do it.  Sort neighborhoods by a particular parameter.  Analyze the top ones.  
-
-# go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
-
-#reduce it to a set of categoricals that you can work with.  IE.  look through neighborhoods and kick out the bad ones. if you wanna do neighborhood
+Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
 
 ```
 
-```{r}
-with(Clean.train, table(Neighborhood, MSZoning))
+```{r EDAScatterplots}
 
-ggplot(Clean.train, aes(x = HeatingQC, y = SalePrice)) +
+
+ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
-        xlab("Neighborhood") +
+        xlab("Heating QC") +
         ylab("Sale Price") +
         theme(text = element_text(size=9)) +
-        ggtitle("SalePrice by Neighborhood") 
+        ggtitle("SalePrice by HeatingQC") 
 
-ggplot(Clean.train, aes(x = CentralAir, y = SalePrice)) +
+ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
-        xlab("Building Type") +
+        xlab("Central Air") +
         ylab("Sale Price") +
         theme(text = element_text(size=9)) +
-        ggtitle("Sale Price by Building Type") 
+        ggtitle("Sale Price by CentralAir") 
 
 ```
 
@@ -481,8 +464,20 @@ ano.fit <-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Cle
 with(Clean.train, table(Neighborhood, GarageType))
 ```
 
-```{r}
-please.fit<-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Clean.train)
+```{r Residual_Plotting}
+
+
+library(car)
+require(gridExtra)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+
+ano.fit <-aov(log_SalePrice~HeatingQC+CentralAir,data=Clean.train)
+
+Anova(ano.fit,type=3)
+
+please.fit<-ano.fit
 
 plsfit<-data.frame(fitted.values=please.fit$fitted.values,residuals=please.fit$residuals)
 
@@ -501,8 +496,18 @@ plot3<-ggplot(plsfit, aes(x=residuals)) +
 
 grid.arrange(plot1, plot2,plot3, ncol=3)
 
-```
 
+# go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
+
+#reduce it to a set of 
+
+#Might be a way to do it.  Sort neighborhoods by a particular parameter.  Analyze the top ones.  
+
+# go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
+
+#reduce it to a set of categoricals that you can work with.  IE.  look through neighborhoods and kick out the bad ones. if you wanna do neighborhood
+
+```
 
   * Normality - Histogram and QQ Plots
     * The Histogram and QQ plot show some curvature in Q1 and Q3 sections.  A log transform could help straighten that out. 
