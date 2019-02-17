@@ -26,7 +26,7 @@ First off, we need to go through and do a little house cleaning with the data.  
 
 ### Will Go through and edit that to better mirror what our EDA ends up being.
 
-```{r Dataload}
+```{r Dataload1}
 #setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project1/Ames/house-prices-advanced-regression-techniques")
 #train <- read.csv("train.csv", stringsAsFactors = FALSE)
 #test <- read.csv("test.csv", stringsAsFactors = FALSE)
