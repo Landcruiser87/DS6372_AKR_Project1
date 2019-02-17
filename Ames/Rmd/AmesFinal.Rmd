@@ -34,6 +34,9 @@ test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
 
 ```
 
+After combining the test and train datasets, we decided to create a smaller subset in hopes of targeting homes that represent typical home sale transactions in Ames, IA. As a result, we removed all commercial or severely damaged properties while keeping homes sold under "normal" conditions only.
+
+
 ```{r test_train_bind}
 train$split <- "train" #Add column to delineate train
 test$split <- "test" #Add column to delineate test
@@ -45,6 +48,9 @@ df <- rbind(train, test) #Append train and test to make data cleanup easier
 df2 <- subset(df, SaleCondition=="Normal" | MSZoning !="C (all)" | Functional != "Sev")
 
 ```
+
+We further reduced the dataset by excluding rows missing values rather than imputing the missing values. Lot Frontage NA values were converted to 0 and the GarageYrBlt values were converted to inherit the YearBuilt value if the property did indeed have a  garage. Lastly, all missing numeric values were transformed to 0 and all missing character values were changed to "None".
+
 
 ```{r narm_1}
 #Remove rows with NA values per column
@@ -79,9 +85,10 @@ df3[,df3_char] <- sapply(df3[,df3_char],function(x){ifelse(is.na(x),"None",x)})
 
 ```
 
+The final step in our data scrubbing process was to convert all character columns to factor columns. Now that our final dataset is completely clean and uniform, we can confidently move on to the exploratory analysis process.
+
+
 ```{r factor}
-
-
 #Turn all character columns to factors 
 df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.factor)
 
