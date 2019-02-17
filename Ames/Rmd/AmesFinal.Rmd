@@ -26,8 +26,8 @@ First off, we need to go through and do a little house cleaning with the data.  
 ```{r Dataload}
 
 #setwd("C:/Users/andyh/Google Drive/Education/SMU/Courses/DS_6372_Applied_Statistics/project1/Ames/house-prices-advanced-regression-techniques")
-train <- read.csv("train.csv", stringsAsFactors = FALSE)
-test <- read.csv("test.csv", stringsAsFactors = FALSE)
+train <- read.csv("../Datasets/train.csv", stringsAsFactors = FALSE)
+test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
 #As long as we all have the new folder structure, the following should work for all of us without having to change paths or manually moving files...
 #train <- read.csv("../Datasets/train.csv", stringsAsFactors = FALSE)
 #test <- read.csv("../Datasets/test.csv", stringsAsFactors = FALSE)
@@ -233,45 +233,44 @@ varImpPlot(rf_model,type=1, main='Random Tree Variable Importance')
 
 
 
-```{r}
-set.seed(1234) #not sure what protocol is for set.seed, we did this so our homeworks would match, but we probably want this to be actually random?
+## Objective 1 - Multiple Linear Regression
+**NOTE:** Due to slight differences in dataset manipulation when we divied out the tasks and when we put together the parts, the analysis below will not match the results of the code. We still believe that the model we have produced due to the analysis is still a good one across seeds/minor dataset variations.
 
+We will use forward selection to determine the most effective explanatory variables that can be used to predict the sale price of homes in Ames, Iowa. First we will split the `training.csv` given in the Kaggle data set into another training and test set to determine the effectiveness of our models as the `test.csv` in the Kaggle set does not provide sale prices. We will also be dropping factors. Some with only one level, logged variables that we decided above not to use, and Id as it is a known arbitrary field.
 
-# Getting back just the training set from massaged data
-trainingSet <- df3[df3$split == "train",]
+A quick check of the assumptions by plotting the full model yields some mixed results. There are some outliers according to the Residuals vs Fitted and Cook's D plots. We believe the analysis can continue with them as they are legitimate houses with high prices. The residuals are relatively normal shaped according to the QQ plot and the samples are assumed to be independent.
 
-#there are 1193 observations. Divide in half
-index<-sample(1:dim(trainingSet)[1], dim(trainingSet)[1] / 2, replace = F)
+```{r setSeedGetTraining, echo=FALSE}
+set.seed(25) #Used this to sanity check the ASE results
+```
 
-# Dropping Utilities and SaleCondition (we filtered for only Normal) because they only have 1 level
-# Also dropping non logged counterparts of numeric variables (described above), ID (arbitrary), and the Split variable used above to differentiate between Train and Test sets that is no longer needed.
-#Also dropping the logged sale price as we will just do that in the model we declare below.
+```{r splitTrainingSet}
+trainingSet <- df3[df3$split == "train",] # Getting back just the records found in `training.csv`
+index<-sample(1:dim(trainingSet)[1], dim(trainingSet)[1] / 2, replace = F) #Used to divide the set into 2 sets
+
 columnsToDrop <- c("Utilities", "SaleCondition","log_TotalBaths","log_TotalSqFt_100","Id","split", "log_TotalSqFt","log_TotalPorchSqFt","log_HouseAge", "log_MasVnrArea","log_LotFrontage","log_PoolArea", "log_SalePrice","log_LotArea")
 trainingSet <- trainingSet[, !names(trainingSet) %in% columnsToDrop]
 
-#removing for high colinearity
-#highVifColumns <- c("MSSubClass","LotArea","OverallQual","YearRemodAdd","BsmtFinSF1","BsmtFinSF2","BsmtUnfSF","X1stFlrSF","X2ndFlrSF","KitchenAbvGr","TotRmsAbvGrd","Fireplaces","GarageCars","PoolArea","MiscVal","HouseAge","GarageYrBlt","Exterior1st","Exterior2nd","Condition1","Condition2","ExterQual","ExterCond")
+par(mfrow=c(2,2))
+plot(lm(log(SalePrice)~.,trainingSet))
 
-#trainingSet <- trainingSet[, !names(trainingSet) %in% c(columnsToDrop,highVifColumns)]
-
-
-#columnsToInclude <- c("LotArea","MasVnrArea","BsmtFinSF1","Fireplaces","X1stFlrSF","log_TotalSqFt_100","WoodDeckSF","YearRemodAdd","TotalBaths","OverallQual","GarageCars","SalePrice")
-#trainingSet <- trainingSet[, names(trainingSet) %in% columnsToInclude]
-
-#splitting into train and test, since the test we are given doesn't have the actual values
 mlrHousesTrain<-trainingSet[index,]
 mlrHousesTest<-trainingSet[-index,]
 
+#Size of each set
+dim(mlrHousesTrain)
+dim(mlrHousesTest)
+```
+
+Below you will see a few measures used to determine the effectiveness of the model at each step of the forward selection. First is the Bayesian Information Criterion (BIC), a lower value means the predicted values are closer to the actual results. As can be seen at about 40 predictors, the BIC also has a penalty that goes up as the number of predictors goes up. Next is the adjusted R-squared, a measure of how much of the variability is explained by the model, which peaks at about 100 predictors. Finally, we have the residual sum of squares (RSS), the sum of the squared differences of the predictions from the actual results without a penalty like the BIC, which has its lowest point when all the predictors are added.
+
+```{r runningForwardSelection, echo=FALSE}
 library(leaps)
 
-#There are 239 variables, it splits categoricals into multiple variables. Setting that as the max
+#There are 239 variables as it splits categoricals into multiple variables. Setting that as the max. really.big must be true on sets with more than 50 variables
 reg.fwd=regsubsets(log(SalePrice)~., data = mlrHousesTrain, method = "forward", really.big=T, nvmax=239)
 
-#summary(reg.fwd)$adjr2
-#summary(reg.fwd)$rss
-#summary(reg.fwd)$bic
-
-#Getting total runs by counting how many bic values
+#Getting total runs for the x-axis of the plots below by counting how many bic values are returned
 totalRuns <- length(summary(reg.fwd)$bic)
 par(mfrow=c(1,3))
 bics<-summary(reg.fwd)$bic
@@ -285,10 +284,14 @@ index<-which(adjr2==max(adjr2))
 points(index,adjr2[index],col="red",pch=10)
 
 rss<-summary(reg.fwd)$rss
-plot(1:totalRuns,rss,type="l",ylab="train RSS",xlab="# of predictors")
+plot(1:totalRuns,rss,type="l",ylab="Train RSS",xlab="# of predictors")
 index<-which(rss==min(rss))
 points(index,rss[index],col="red",pch=10)
+```
 
+We will also look at the average squared error (ASE) of the predictions vs the actual values of each step in the feature selection. As can be seen below, and like the RSS above, it continues to decrease until all the variable are added. However, there is a final significant dip at about 60 predictors. 
+```{r ASE, echo=FALSE}
+#Function provided by Dr. Turner in Unit 2 to give predictions at a specific step of feature selection
 predict.regsubsets =function (object , newdata ,id ,...){
   form=as.formula (object$call [[2]])
   mat=model.matrix(form ,newdata )
@@ -298,13 +301,12 @@ predict.regsubsets =function (object , newdata ,id ,...){
 }
 
 testASE<-c()
-#note my index is to 20 since that what I set it in regsubsets
 for (i in 1:totalRuns){
   predictions<-predict.regsubsets(object=reg.fwd,newdata=mlrHousesTest,id=i) 
   testASE[i]<-mean((log(mlrHousesTest$SalePrice)-predictions)^2)
 }
 par(mfrow=c(1,1))
-plot(1:totalRuns,testASE,type="l",xlab="# of predictors",ylab="test vs train ASE",ylim=c(0,1))
+plot(1:totalRuns,testASE,type="l",xlab="# of predictors",ylab="Test vs Train ASE",ylim=c(0,.5))
 
 lowestASEModelIndex<-which(testASE==min(testASE))
 # in case multiple models have the same ASE
@@ -316,23 +318,56 @@ rss<-summary(reg.fwd)$rss
 
 testSampleSize <- dim(mlrHousesTest)[1]
 lines(1:totalRuns,rss/testSampleSize,lty=3,col="blue")  #Dividing by 100 since ASE=RSS/sample size
-
-names(coef(reg.fwd,lowestASEModelIndex))
-
-
-final.model<-lm(log(SalePrice)~TotalSqFt+Neighborhood+LotArea+OverallQual+HouseAge+YearRemodAdd+GarageType,data=mlrHousesTrain)
-summary(final.model)
-
-# Confidence Intervals
-ConfIntervals <- predict(final.model,mlrHousesTrain,interval="confidence")
-ConfIntervals <- exp(ConfIntervals[,1:3])
-
-par(mfrow=c(2,2))
-plot(final.model)
-
-
-
 ```
+
+After more drilling, we've determined that the last significant drop in ASE is found at step 58 where the ASE drops from .04 to .0226. The following fields were selected:
+
+```{r fields}
+names(coef(reg.fwd,58))
+```
+
+Included are some categorical factors, but not all the levels of those factors. From here we will create a linear model with every continuous variable or categorical variable that is represented by at least 1 level above. The summary of the fit is too long to paste here (see the full list in the Appendix under the Stepwise Model Selection Coefficient Summary heading). Below are some selected regression coefficients and their interpretation. As described earlier, we use a log-linear regression which means we logged the sale price but none of the explanatory variables. Besides the intercept, in the interpretations for the slope coefficients, assume all other variables are held constant.
+
+```{r linearModel}
+# I dropped street below because in this set it only had one level. Not enough variation to keep it in.
+forwardSelectedModel <- lm(log(SalePrice)~MSZoning+LotFrontage+LotArea+LotConfig+Neighborhood+Condition1+HouseStyle+RoofMatl+Exterior1st+ExterCond+Foundation+BsmtExposure+BsmtFinType1+BsmtFinSF1+BsmtFinType2+Heating+CentralAir+Electrical+LowQualFinSF+TotRmsAbvGrd+Functional+Fireplaces+FireplaceQu+GarageType+GarageFinish+Fence+MoSold+SaleType+TotalSqFt+Condition2+GarageCond+MiscFeature, data = mlrHousesTrain)
+```
+
+| Variable | Coefficient | p-value | Interpretation |
+| -------  | ----------- | ------ |-------------- |
+| Intercept | 11.04 | < 2e-16 | With all variables at 0, the sale price of the house would be $e^{11.04}$ = $62317.65 |
+| Total Indoor Area (sqft) | 2.167e-4 | < 2e-16 | A 100 sqft increase would yield a .22% increase in sale price |
+| Unfinished Garage | -.0697 | 5.16e-4 | An unfinished garage decreases the sale price by -6.9% |
+| Lot Area (sqft) | 1.75e-6 | .0163 | Every acre (43,560 sqft) yields a 7.62% increase in sale price |
+| Crawford Neighborhood | .1713 | .00604 | The sale price of a home in the Crawford neighborhood is increased 17.13% |
+| MeadowV Neighborhood | -.32 | 1.06e-4 | The sale price of a home in the MeadowV neighborhood is decreased 32% |
+| Stucco Exterior | .258 | 8.94e-4 | A stucco exterior increases the sale price 25.8% |
+| Asphalt Shingle Exterior Covering | .2263 | .138 | An asphalt shingle exterior covering increases the sale price 22.6% |
+
+Again, the variables above are just a few of the ones included in the model selected by forward stepwise selection. The starting price with all variables at zero is highly significant as well as the increase of price per square foot of indoor space. We also have examples of highly significant and high practical impact categorical levels (Crawford and MeadowV neighborhoods) as well as a non-significant but high impact level (asphalt shingle exterior covering). There are also many 
+variables thrown into the model that are non-significant ( p-value > .05). Below I will fit one more "hybrid" model with all non-significant continuous variables and categorical variables without a significant level removed from the forward selection model. It looks like the total indoor square footage was the last highly significant variable added at step 58 and many non-significant factors were added on the way. It's hard to determine the order, as the `regsubset` method will shuffle the variables if it detects high colinearity.
+
+```{r forwardSelectedModelWithoutNonSignificantVars}
+#Removed MSZoning,LotFrontage,HouseStyle,Foundation,BsmtFinSF1,Electrical,LowQualFinSF,TotRmsAbvGrd,Fireplaces,FireplaceQu,Fence,MoSold,Condition2,GarageCond,MiscFeature
+hybridModel <- lm(log(SalePrice)~LotArea+LotConfig+Neighborhood+Condition1+RoofMatl+Exterior1st+ExterCond+BsmtExposure+BsmtFinType1+BsmtFinType2+Heating+CentralAir+Functional+GarageType+GarageFinish+SaleType+TotalSqFt, data = mlrHousesTrain)
+```
+
+The ASE of the new model (compared with .0226 above):
+```{r aseOfHybridModel, message=FALSE}
+#Removing test set rows levels that were not present in the training set. I should've checked for level representation in both sets with the seed specified. Too late to fix the right way now and change my analysis above. These account for 16 rows and prompts a warning because of prediction on a set with less rows than the one used to make the fit.
+mlrHousesTest2 <- mlrHousesTest[!mlrHousesTest$RoofMatl %in% c("ClyTile","Roll","Membran") & mlrHousesTest$Heating != "OthW",]
+hybridModelPredictions <- predict(hybridModel, newdata=mlrHousesTest2, interval="confidence") 
+hybridModelTestASE <- mean((log(mlrHousesTest2$SalePrice) - hybridModelPredictions[,1])^2) #Selecting the fit column of predictions
+hybridModelTestASE
+```
+This is better than the ASE from the forward model selection and significantly reduces the number of variables in the fit, thereby reducing the risk overfitting. Below are the first five predictions along with the confidence intervals. Since we logged the sale prices, we transform them back to meaningful numbers by raising them as a power of e. Looking at the first prediction we see a prediction of $190,506 with a 95% confidence interval of $183,174 and $198,131.
+
+```{r predictionsWithConfidenceIntervals}
+head(exp(hybridModelPredictions))
+```
+
+### Conclusion
+We believe that we our final model is a good one that separates the wheat from the chaff with regard to relevant factors. As far as new insights, we have learned about the simplicity of feature selection. Non-significant factors are not pruned on the way to the most accurate model. Manual pruning needs to be done after the feature selection has completed to reduce needless complexity. Finally, next time we would like to have a simpler dataset so that small changes in how we put together the test and training sets will not throw off analysis that has already been done as can be seen in the differences between the paragraphs and code output above. 
 
 ### Objective 2 - A Two way Anova
 
@@ -422,3 +457,15 @@ grid.arrange(plot1, plot2,plot3, ncol=3)
   * Constant Variance - Residuals plot
   * Independence of variables - We have independence of variables
   * Check for outliers.
+
+  
+## Appendix
+### Stepwise Model Selection Coefficient Summary
+Original Forward Selected Model
+```{r appendixForwardSelectionSummary}
+summary(forwardSelectedModel)
+```
+
+```{r appendixHybridModelSummary}
+summary(hybridModel)
+```
