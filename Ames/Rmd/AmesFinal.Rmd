@@ -91,7 +91,7 @@ The final step in our data scrubbing process was to convert all character column
 #Turn all character columns to factors 
 df3[sapply(df3, is.character)] <- lapply(df3[sapply(df3, is.character)], as.factor)
 #Check NA's by column
-colSums(is.na(df3)) 
+#colSums(is.na(df3)) 
 
 ```
 
@@ -117,7 +117,7 @@ df3$HouseAge <- as.numeric(df3$YrSold) - as.numeric(df3$YearBuilt)
 Now we'll generate an inital scatterplot matrix to view the untransformed numerical data and see if we find any correlation.  We picked these variables in order to look at our feature creation and seeing how square footage, in all its forms, plays into the Sale Price.
 
 
-```{r Initial_Scatter_plots, echo=FALSE}
+```{r Initial_Scatter_plots, echo=FALSE,fig.height=8, fig.width=8}
 
 
 #Also to check for multi-collinelarity 
@@ -167,7 +167,7 @@ df_test <- split_df[[1]]
 
 First we'll try a log-linear approach and only log the Sale price. 
 
-```{r Log_Linear_SP,echo=FALSE, fig.height=10, fig.width=10}
+```{r Log_Linear_SP,echo=FALSE, fig.height=8, fig.width=8}
 #Scatterplot matrix for log/linear relationship 
 pairs(~log_SalePrice + TotalSqFt + TotalPorchSqFt + HouseAge + 
         LotFrontage + LotArea + MasVnrArea + PoolArea, data=df_train, main="Log/Linear Scatterplot")
@@ -183,7 +183,7 @@ pairs.panels(df_train[,c("log_SalePrice", "TotalSqFt", "TotalPorchSqFt","HouseAg
 
 While we see an improvement in the Log_Sale Price distribution, some of the other features still aren't behaving, so we'll log them all now to see what we can find. 
 
-```{r Log_log, echo=FALSE, fig.height=10, fig.width=10}
+```{r Log_log, echo=FALSE, fig.height=8, fig.width=8}
 #Scatterplot matrix for log/log relationship 
 pairs(~log_SalePrice + log_TotalSqFt + log_TotalPorchSqFt + HouseAge + 
         log_LotFrontage + log_LotArea + log_MasVnrArea + log_PoolArea, data=df_train, main="Log/Log Scatterplot")
@@ -201,7 +201,7 @@ pairs.panels(df_train[,c("log_SalePrice", "log_TotalSqFt", "log_TotalPorchSqFt",
 Now we see the log-log doesn't necessarily improve normality so we will probably stick with log-linear for a transformation for now.  Next lets load a heat map and look at the correlation matrix.
 
 
-```{r corHeatMap, echo=FALSE, fig.height=10, fig.width=10}
+```{r corHeatMap, echo=FALSE, fig.height=8, fig.width=8}
 #Check for multi-collinelarity
 library(corrplot)
 #Return numeric values only
@@ -227,7 +227,7 @@ corrplot(df_corr, method="circle", order="hclust", addrect=4, win.asp=.7, title=
 
 Now that we've explored a bit more of the data, we're going to look at some other modes of selection to also give us an idea of the order of importance.  
 
-```{r RandomForrest,echo=FALSE, warning=FALSE, message=FALSE, fig.height=10, fig.width=10}
+```{r RandomForrest,echo=FALSE, warning=FALSE, message=FALSE, fig.height=6, fig.width=6}
 library(randomForest)
 rf_model <- randomForest(SalePrice~., data=df_train, importance = TRUE)
 #importance(rf_model)
@@ -264,7 +264,7 @@ mlrHousesTest<-trainingSet[-index,]
 
 Below you will see a few measures used to determine the effectiveness of the model at each step of the forward selection. First is the Bayesian Information Criterion (BIC), a lower value means the predicted values are closer to the actual results. As can be seen at about 40 predictors, the BIC also has a penalty that goes up as the number of predictors goes up. Next is the adjusted R-squared, a measure of how much of the variability is explained by the model, which peaks at about 100 predictors. Finally, we have the residual sum of squares (RSS), the sum of the squared differences of the predictions from the actual results without a penalty like the BIC, which has its lowest point when all the predictors are added.
 
-```{r runningForwardSelection, echo=FALSE, warning=FALSE, message=FALSE}
+```{r runningForwardSelection, echo=FALSE, warning=FALSE, message=FALSE, fig.height=4, fig.width=8}
 library(leaps)
 
 #There are 239 variables as it splits categoricals into multiple variables. Setting that as the max. really.big must be true on sets with more than 50 variables
@@ -292,7 +292,7 @@ points(index,rss[index],col="red",pch=10)
 ```
 
 We will also look at the average squared error (ASE) of the predictions vs the actual values of each step in the feature selection. As can be seen below, and like the RSS above, it continues to decrease until all the variable are added. However, there is a final significant dip at about 60 predictors. 
-```{r ASE, echo=FALSE}
+```{r ASE, echo=FALSE, fig.height=4,fig.width=8}
 #Function provided by Dr. Turner in Unit 2 to give predictions at a specific step of feature selection
 predict.regsubsets =function (object , newdata ,id ,...){
   form=as.formula (object$call [[2]])
@@ -377,7 +377,7 @@ Next we will take our analysis a little further by examing a Two-way anova over 
 
 For our initial look, we looked at summary stats and see what the means look like across the rating groups.  Inital graphing showed that the Central Air = No, HeatingQC = Poor categories with very low counts.  We decided to subset that out as that will cause problems for regression. We're starting with the logged SalePrice as our earlier analysis has shown it improves the normality in the regression.
 
-```{r ANOVA, echo=FALSE, warning=FALSE, message=FALSE}
+```{r ANOVA, echo=FALSE, warning=FALSE, message=FALSE,fig.height=4, fig.width=8}
 
 library(ggplot2)
 library(dplyr)
@@ -397,7 +397,7 @@ sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
 
 
 # Subset out the HeatingQC = "Po"
-with(Clean.train, table(HeatingQC, CentralAir))
+#with(Clean.train, table(HeatingQC, CentralAir))
 Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
 
 #Summary stats w/o Po
@@ -418,9 +418,9 @@ The plot above does not seem to show an interactive effect as the lines do not c
 The means plot above uses Standard deviations as it gives us another look at the equal variance assumption.  We're showing fairly equal variance but our sumstats table shows us that we have unequal sample sizes for alot of the different HeatingQC groups.  To dive further, lets also just look at the two categoricals independently to see their structure.  It is important to note, that some mean levels of heatingQC increase while the mean levels of centralAC decrease, indicating that there may be interaction within the model.  
 
 
-```{r EDAScatterplots, echo=FALSE, warning=FALSE, message=FALSE, fig.height=4}
+```{r EDAScatterplots, echo=FALSE, warning=FALSE, message=FALSE, fig.height=4, fig.width=8}
 library("gridExtra")
-p1 <- ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
+p1 <- ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice, group=CentralAir,colour=CentralAir)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
         xlab("Heating QC") +
@@ -428,7 +428,7 @@ p1 <- ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
         theme(text = element_text(size=9)) +
         ggtitle("SalePrice by HeatingQC") 
 
-p2 <- ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice)) +
+p2 <- ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice, group=HeatingQC,colour=HeatingQC)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
         xlab("Central Air") +
@@ -442,7 +442,7 @@ grid.arrange(p1, p2, ncol=2)
 
 Now we'll look at the residual diagnostics of our non-additive two way anova to get an understanding of the residual plots to further check our assumptions.  To start, we'll fit the full model with an interaction term to see if there is any interaction between the two categoricals.
 
-```{r Residual_Plotting, echo=FALSE, warning=FALSE, message=FALSE}
+```{r Residual_Plotting, echo=FALSE, warning=FALSE, message=FALSE, fig.height=2, fig.width=8}
 
 
 library(car)
@@ -474,20 +474,22 @@ grid.arrange(plot1, plot2,plot3, ncol=3)
 
 
 ```
-* Normality - Histogram and QQ Plots
-* QQ plot show some curvature in the Q3 section.  But it doesn't look bad enough to violate the normality assumption. 
-* The Histogram of the residuals looks even better and is normally distributed. 
-* Constant Variance - Looking at the residuals plot it seems to have a fairly even distribution between the groups.  We may have some uneven sample sizes that are causing some clustering but for now we shall proceed with caution.
-* Independence of variables - We have independence of variables
-* Check for outliers -  There does not appear to be any obvious outliers from the residuals.
+
+- Normality - Histogram and QQ Plots
+  - QQ plot show some curvature in the Q3 section.  But it doesn't look bad enough to violate the normality assumption. 
+  - The Histogram of the residuals looks even better and is normally distributed. 
+- Constant Variance - Looking at the residuals plot it seems to have a fairly even distribution between the groups.  We may have some uneven sample sizes that are causing some clustering but for now we shall proceed with caution.
+- Independence of variables - We have independence of variables
+- Check for outliers -  There does not appear to be any obvious outliers from the residuals.
 
 Keeping unequal sample sizes in mind, the assumptions are met for our two way anova. The Type III sum of squares test shows us that the interaction term is right on the cusp of being significant (F-stat:2.587, p = 0.0517).  As such, we've decided to keep it in the model.  It is evident that there is a difference in sale price among pairing groups of CentralAir vs HeatingQC (F-Stat:9649.24, p < .0001). This is a very large F-stat, but this could be explained by the large differences in sample sizes in groups or other co-variates that we failed to control for.
 
 ### Conclusion
 
 Given the existence of two categorical variables with a continuous response variable, a Two-Way ANOVA can be ran to determine differences of the continuous response among groups of the categorical variables.  The analysis was ran on pairings of central air conditioning and the quality rating of the heating system.  We determined that there is a significant difference in sale price of houses between different pairings of those two groups, with some concerns over sample sizes between the groups.  
-  
-## Appendix
-```{r, ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
 
+
+
+## Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
 ```
