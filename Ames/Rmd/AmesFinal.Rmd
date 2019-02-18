@@ -413,6 +413,7 @@ sumstats
 
 ```
 
+The plot above does not seem to show an interactive effect as the lines do not cross. The additive model might be the best approach in this case. It is important to note that some mean levels of HeatingQC increase while the mean levels of Central Air decrease.
 
 The means plot above uses Standard deviations as it gives us another look at the equal variance assumption.  We're showing fairly equal variance but our sumstats table shows us that we have unequal sample sizes for alot of the different HeatingQC groups.  To dive further, lets also just look at the two categoricals independently to see their structure.  It is important to note, that some mean levels of heatingQC increase while the mean levels of centralAC decrease, indicating that there may be interaction within the model.  
 
