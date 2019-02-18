@@ -381,15 +381,11 @@ We believe that we our final model is a good one that separates the wheat from t
 
 ### Objective 2 - A Two way Anova
 
-
-
-Next we will take our analysis a little further by examing a Two-way anova over two categorical variables as they relate to the Sale Price of a home.  With looking at various categoricals to pick from, trying to find an even blend of saturation across the group means is our goal.  Our investigation led us to HeatingQC and CentralAir.  If you've ever been to Iowa, the summers there can be blisteringly hot, while the winters can be extremely cold.  As such, We hypothesize that both will play a vital role in the value of a Sale as comfort is more of a necessity in such a wide ranging climate. 
-
-
-
 Next we will take our analysis a little further by examing a Two-way anova over two categorical variables as they relate to the Sale Price of a home.  With looking at various categoricals to pick from, trying to find an even blend of saturation across the group means is our goal.  Our investigation led us to HeatingQC and CentralAir.  If you've ever been to Iowa, the summers there can be blisteringly hot, while the winters can be extremely cold.  As such, We hypothesize that both factors will play a vital role in the value of a Sale as comfort is more of a necessity in such a wide ranging climate. Lets explore the data to find out. 
 
-For our initial look, we should check out summary stats and see what the means look like across the groups.  Inital graphing showed that the Central Air = No, HeatingQC = Poor categories had very low counts.  We decided to subset that out as that will cause problems with regression. Also, we're starting with the logged SalePrice as our earlier analysis has shown it improves the normal distribution.
+For our initial look, we looked at summary stats and see what the means look like across the rating groups.  Inital graphing showed that the Central Air = No, HeatingQC = Poor categories with very low counts.  We decided to subset that out as that will cause problems for regression. We're starting with the logged SalePrice as our earlier analysis has shown it improves the normality in the regression.
+
+##COULD GO THROUGH UNLOGGED TO SHOW ITS WORSE.  BUT PROBABLY NOT
  
 
 ```{r ANOVA}
@@ -406,14 +402,19 @@ mysummary<-function(x){
   names(result)<-c("N","Min","Max","IQR","Mean","SD","SE")
   return(result)
 }
-#stats
+#Summary stats
 sumstats<-aggregate(log(SalePrice)~HeatingQC*CentralAir,data=Clean.train,mysummary)
 sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
-sumstats
+
 
 # Subset out the HeatingQC = "Po"
 with(Clean.train, table(HeatingQC, CentralAir))
 Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
+
+#Summary stats w/o Po
+sumstats<-aggregate(log(SalePrice)~HeatingQC*CentralAir,data=Clean.train,mysummary)
+sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
+sumstats
 
  ggplot(sumstats,aes(x=HeatingQC,y=Mean,group=CentralAir,colour=CentralAir))+
   ylab("Sale Price")+
@@ -424,11 +425,11 @@ Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
 ```
 
 
-The means plot above shows us that by looking at the standard deviations 
+The means plot above uses Standard deviations as it gives us another look at the equal variance assumption.  We're showing fairly equal variance but our sumstats table shows us that we have unequal sample sizes for alot of the different HeatingQC groups.  To dive further, lets also just look at the two groups independently to see their structure
+
+
 ```{r EDAScatterplots, fig.height=4}
-library(gridExtra)
-
-
+library("gridExtra")
 p1 <- ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
@@ -444,15 +445,15 @@ p2 <- ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice)) +
         ylab("Sale Price") +
         theme(text = element_text(size=9)) +
         ggtitle("Sale Price by CentralAir") 
-p1
-p2
+grid.arrange(p1, p2, ncol=2)
 
 ```
 
-# Now lets take a look at assumptions of the residuals in order to make sure we've satisfied all those before we can proceed with an Anova.
 
+Now we'll look at the residual diagnostics of our non-additive two way anova to get an understanding of the residual plots to further check our assumptions.  
 
 ```{r Residual_Plotting}
+
 
 library(car)
 require(gridExtra)
@@ -464,24 +465,23 @@ ano.fit <-aov(log_SalePrice~HeatingQC+CentralAir+HeatingQC:CentralAir,data=Clean
 
 Anova(ano.fit,type=3)
 
-please.fit<-ano.fit
-
-plsfit<-data.frame(fitted.values=please.fit$fitted.values,residuals=please.fit$residuals)
+Anovadata<-data.frame(fitted.values=ano.fit$fitted.values,residuals=ano.fit$residuals)
 
 #Residual vs Fitted
-plot1<-ggplot(plsfit,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
+plot1<-ggplot(Anovadata,aes(x=fitted.values,y=residuals))+ylab("Residuals")+
   xlab("Predicted")+geom_point()
 
 #QQ plot of residuals  #Note the diagonal abline is only good for qqplots of normal data.
-plot2<-ggplot(plsfit,aes(sample=residuals))+
-  stat_qq()+geom_abline(intercept=mean(plsfit$residuals), slope = sd(plsfit$residuals))
+plot2<-ggplot(Anovadata,aes(sample=residuals))+
+  stat_qq()+geom_abline(intercept=mean(Anovadata$residuals), slope = sd(Anovadata$residuals))
 
 #Histogram of residuals
-plot3<-ggplot(plsfit, aes(x=residuals)) + 
-  geom_histogram(aes(y=..density..),binwidth=10,color="black", fill="gray")+
+plot3<-ggplot(Anovadata, aes(x=residuals)) + 
+  geom_histogram(aes(y=..density..),binwidth=.5,color="black", fill="gray")+
   geom_density(alpha=.1, fill="red")
 
 grid.arrange(plot1, plot2,plot3, ncol=3)
+
 
 # go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
 
@@ -495,12 +495,13 @@ grid.arrange(plot1, plot2,plot3, ncol=3)
 
 ```
 
+
   * Normality - Histogram and QQ Plots
-    * The Histogram and QQ plot show some curvature in Q1 and Q3 sections.  A log transform could help straighten that out. 
-  * Constant Variance - Residuals plot
+    * QQ plot show some curvature in the Q3 section.  But it doesn't look bad enough to violate the normality assumption.  
+    * The Histogram of the residuals looks even better and is normally distributed. 
+  * Constant Variance - Looking at the residuals plot it seems to have a fairly even distribution between the groups.  
   * Independence of variables - We have independence of variables
   * Check for outliers.
-
   
 ## Appendix
 ### Stepwise Model Selection Coefficient Summary
