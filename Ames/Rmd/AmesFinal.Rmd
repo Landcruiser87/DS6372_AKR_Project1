@@ -142,7 +142,7 @@ While there does appear to be some correlation between the area and age-related 
 We log-transformed all numeric variables shown in the scatterplot above in advance of our analysis to have them readily available should we need them. To reduce explanatory variables and avoid multi-collinearity issues, we removed the variables used to create the additional features (see "FeatureCreation" above).
 
 
-``` {r VariableLogging}
+```{r VariableLogging}
 
 # Logged variables for regression
 df3$log_SalePrice <- as.numeric(ifelse(df3$split=="train",log(df3$SalePrice)," "))
