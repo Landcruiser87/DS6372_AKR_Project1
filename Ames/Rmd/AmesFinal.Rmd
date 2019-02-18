@@ -385,41 +385,51 @@ We believe that we our final model is a good one that separates the wheat from t
 
 Next we will take our analysis a little further by examing a Two-way anova over two categorical variables as they relate to the Sale Price of a home.  With looking at various categoricals to pick from, trying to find an even blend of saturation across the group means is our goal.  Our investigation led us to HeatingQC and CentralAir.  If you've ever been to Iowa, the summers there can be blisteringly hot, while the winters can be extremely cold.  As such, We hypothesize that both will play a vital role in the value of a Sale as comfort is more of a necessity in such a wide ranging climate. 
 
+
+
+Next we will take our analysis a little further by examing a Two-way anova over two categorical variables as they relate to the Sale Price of a home.  With looking at various categoricals to pick from, trying to find an even blend of saturation across the group means is our goal.  Our investigation led us to HeatingQC and CentralAir.  If you've ever been to Iowa, the summers there can be blisteringly hot, while the winters can be extremely cold.  As such, We hypothesize that both factors will play a vital role in the value of a Sale as comfort is more of a necessity in such a wide ranging climate. Lets explore the data to find out. 
+
+For our initial look, we should check out summary stats and see what the means look like across the groups.  Inital graphing showed that the Central Air = No, HeatingQC = Poor categories had very low counts.  We decided to subset that out as that will cause problems with regression. Also, we're starting with the logged SalePrice as our earlier analysis has shown it improves the normal distribution.
+ 
+
 ```{r ANOVA}
 
 library(ggplot2)
 library(dplyr)
 
+#split the cleaned data back into train
 Clean.train <- subset(df3, split=="train")
 
+# Summary function from the homework
 mysummary<-function(x){
   result<-c(length(x),min(x),max(x),IQR(x),mean(x),sd(x),sd(x)/sqrt(length(x)))
   names(result)<-c("N","Min","Max","IQR","Mean","SD","SE")
   return(result)
 }
-
-sumstats<-aggregate(SalePrice~HeatingQC*CentralAir,data=Clean.train,mysummary)
+#stats
+sumstats<-aggregate(log(SalePrice)~HeatingQC*CentralAir,data=Clean.train,mysummary)
 sumstats<-cbind(sumstats[,1:2],sumstats[,-(1:2)])
 sumstats
 
-ggplot(sumstats,aes(x=HeatingQC,y=Mean,group=CentralAir,colour=CentralAir))+
-  ylab("Sale Price")+
-  geom_line()+
-  geom_point()+
-  geom_errorbar(aes(ymin=Mean-SE,ymax=Mean+SE),width=.1)
-
-#Just looking at basic means plot we see that the Central Air = Yes category doesn't have a poor rating in any of its heatingQC
-#GarageType & GarageFinish
-
+# Subset out the HeatingQC = "Po"
 with(Clean.train, table(HeatingQC, CentralAir))
 Clean.train <- Clean.train[!(Clean.train$HeatingQC == "Po"),]
 
+ ggplot(sumstats,aes(x=HeatingQC,y=Mean,group=CentralAir,colour=CentralAir))+
+  ylab("Sale Price")+
+  geom_line()+
+  geom_point()+
+  geom_errorbar(aes(ymin=Mean-SD,ymax=Mean+SD),width=.1)
+
 ```
 
-```{r EDAScatterplots}
+
+The means plot above shows us that by looking at the standard deviations 
+```{r EDAScatterplots, fig.height=4}
+library(gridExtra)
 
 
-ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
+p1 <- ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
         xlab("Heating QC") +
@@ -427,13 +437,15 @@ ggplot(Clean.train, aes(x = HeatingQC, y = log_SalePrice)) +
         theme(text = element_text(size=9)) +
         ggtitle("SalePrice by HeatingQC") 
 
-ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice)) +
+p2 <- ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice)) +
         geom_point(shape=1) + 
         geom_smooth(method=lm, se=FALSE) +   
         xlab("Central Air") +
         ylab("Sale Price") +
         theme(text = element_text(size=9)) +
         ggtitle("Sale Price by CentralAir") 
+p1
+p2
 
 ```
 
@@ -442,38 +454,13 @@ ggplot(Clean.train, aes(x = CentralAir, y = log_SalePrice)) +
 
 ```{r Residual_Plotting}
 
-
 library(car)
 require(gridExtra)
 library(gridExtra)
 library(grid)
 library(ggplot2)
 
-ano.fit <-aov(SalePrice~Neighborhood+HouseStyle+Neighborhood:HouseStyle,data=Clean.train)
-
-table(Clean.Train$Neighborhood,Clean.train$HouseStyle)
-# go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
-
-#reduce it to a set of 
-
-Anova(ano.fit,type=3)
-
-ano.fit <-aov(SalePrice~Neighborhood+GarageType+Neighborhood:GarageType,data=Clean.train)
-#Anova(ano.fit,type=3)
-
-with(Clean.train, table(Neighborhood, GarageType))
-```
-
-```{r Residual_Plotting}
-
-
-library(car)
-require(gridExtra)
-library(gridExtra)
-library(grid)
-library(ggplot2)
-
-ano.fit <-aov(log_SalePrice~HeatingQC+CentralAir,data=Clean.train)
+ano.fit <-aov(log_SalePrice~HeatingQC+CentralAir+HeatingQC:CentralAir,data=Clean.train)
 
 Anova(ano.fit,type=3)
 
@@ -495,7 +482,6 @@ plot3<-ggplot(plsfit, aes(x=residuals)) +
   geom_density(alpha=.1, fill="red")
 
 grid.arrange(plot1, plot2,plot3, ncol=3)
-
 
 # go through these and find the neighborhoods and Housestyles that have most of the each others variables.  Its the single one's that are erroring. 
 
